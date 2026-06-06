@@ -1,0 +1,6 @@
+{
+  "name": "WhatsCustomReply",
+  "description": "Automate your WhatsApp and WhatsApp Business replies using Custom Keywords and Gemini AI integration. Includes analytics, custom rules, schedules, and active logs.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
