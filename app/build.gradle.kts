@@ -42,9 +42,8 @@ android {
     release {
       isCrunchPngs = false
       isMinifyEnabled = true
-      isShrinkResources = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-      //signingConfig = signingConfigs.getByName("release")
+      signingConfig = signingConfigs.getByName("release")
     }
     debug {
       signingConfig = signingConfigs.getByName("debugConfig")
@@ -94,6 +93,7 @@ dependencies {
   implementation(libs.koin.compose)
   implementation(libs.androidx.security.crypto)
   implementation(libs.kotlinx.serialization.json)
+  implementation(libs.google.errorprone.annotations)
   
   implementation(libs.kotlinx.coroutines.android)
   implementation(libs.kotlinx.coroutines.core)

@@ -51,3 +51,7 @@
 -keep class gamalsolutions.whatscustomreply.service.WhatsAppNotificationListenerService { *; }
 -keep class * extends android.app.Service
 -keep class * extends android.content.BroadcastReceiver
+
+# ErrorProne Rules
+-dontwarn com.google.errorprone.annotations.**
+-keep class com.google.errorprone.annotations.** { *; }
