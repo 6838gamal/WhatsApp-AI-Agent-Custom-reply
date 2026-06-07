@@ -23,6 +23,8 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import gamalsolutions.whatscustomreply.ui.ArStrings
+import gamalsolutions.whatscustomreply.ui.EnStrings
 import gamalsolutions.whatscustomreply.ui.viewmodel.MainViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,6 +36,7 @@ fun GeminiSettingsScreen(
     val apiKey by viewModel.geminiApiKey.collectAsStateWithLifecycle()
     val testResult by viewModel.testConnectionResult.collectAsStateWithLifecycle()
     val isTesting by viewModel.isTestingConnection.collectAsStateWithLifecycle()
+    val labels = if (settings.appLanguage == "en") EnStrings else ArStrings
 
     var showKey by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
@@ -47,12 +50,12 @@ fun GeminiSettingsScreen(
     ) {
         Column {
             Text(
-                text = "Gemini AI Settings",
+                text = labels.geminiEngineHeader,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.ExtraBold
             )
             Text(
-                text = "Configure prompt attributes and securely bind your Google AI credentials.",
+                text = labels.geminiEngineDesc,
                 fontSize = 13.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -78,11 +81,15 @@ fun GeminiSettingsScreen(
                         contentDescription = "API key icon",
                         tint = MaterialTheme.colorScheme.primary
                     )
-                    Text("Google Gemini API Key", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text(labels.apiKeyLabel, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 }
 
                 Text(
-                    text = "If left empty, the system will fallback to our default trial project key, which might have rate limit boundaries. Save your own key below for infinite requests.",
+                    text = if (settings.appLanguage == "en") {
+                        "If left empty, the system will fallback to our default trial project key, which might have rate limit boundaries. Save your own key below for infinite requests."
+                    } else {
+                        "إذا تم ترك هذا الحقل فارغاً، فسيستخدم الاسترداد التلقائي مفتاحنا الافتراضي المشترك، والذي قد تطبق عليه شروط الاستهلاك ومعدل تكرار الطلبات. احفظ مفتاح الخاص بك لتجربة غير محدودة."
+                    },
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -111,7 +118,7 @@ fun GeminiSettingsScreen(
             }
         }
 
-        // 2. Model的选择
+        // 2. Model Selection
         Card(
             shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(
@@ -131,11 +138,15 @@ fun GeminiSettingsScreen(
                         contentDescription = "Tune Model",
                         tint = MaterialTheme.colorScheme.secondary
                     )
-                    Text("Select Model", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text(labels.selectModel, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 }
 
                 Text(
-                    text = "Pick the generation engine path. Flash models are highly responsive for real-time messaging, with minimal latency.",
+                    text = if (settings.appLanguage == "en") {
+                        "Pick the generation engine path. Flash models are highly responsive for real-time messaging, with minimal latency."
+                    } else {
+                        "اختر إصدار نموذج التوليد التلقائي للرد الحواري الذكي. نماذج Flash خفيفة للغاية وسريعة الاستجابة بأقل مهلة زمنية ممكّنة."
+                    },
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -164,9 +175,9 @@ fun GeminiSettingsScreen(
                         Column {
                             Text(
                                 text = when (m) {
-                                    "gemini-2.5-flash" -> "Gemini 2.5 Flash (Default)"
-                                    "gemini-3.5-flash" -> "Gemini 3.5 Flash (Recommended)"
-                                    else -> "Gemini 3.1 Pro (Heavy Reasoning)"
+                                    "gemini-2.5-flash" -> "Gemini 2.5 Flash (Default / الافتراضي)"
+                                    "gemini-3.5-flash" -> "Gemini 3.5 Flash (Recommended / موصى به)"
+                                    else -> "Gemini 3.1 Pro (Heavy Reasoning / تفكير عميق)"
                                 },
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 14.sp
@@ -202,11 +213,11 @@ fun GeminiSettingsScreen(
                         contentDescription = "System Instructions prompt icon",
                         tint = MaterialTheme.colorScheme.tertiary
                     )
-                    Text("Global AI System Instructions", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text(labels.customSystemPrompt, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 }
 
                 Text(
-                    text = "System rules teach Gemini how to behave. Tell the AI what persona it has, how brief the answer should be (e.g. 'one sentence max'), or what language tone to communicate in.",
+                    text = labels.customSystemPromptDesc,
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -245,11 +256,19 @@ fun GeminiSettingsScreen(
                         contentDescription = "Diagnostics icon",
                         tint = MaterialTheme.colorScheme.primary
                     )
-                    Text("Diagnostic API Connection", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text(
+                        text = if (settings.appLanguage == "en") "Diagnostic API Connection" else "فحص وتشخيص الاتصال",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
                 }
 
                 Text(
-                    text = "Run a live ping test against the Google AI servers using the stored API key to guarantee everything is registered and ready.",
+                    text = if (settings.appLanguage == "en") {
+                        "Run a live ping test against the Google AI servers using the stored API key to guarantee everything is registered and ready."
+                    } else {
+                        "أجرِ فحصًا حيًّا بالاتصال بخوادم الذكاء الاصطناعي من جوجل للتحقق من فاعلية وصحة مفتاح API الخاص بك وصلاحيته للعمل مباشرة."
+                    },
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -273,9 +292,9 @@ fun GeminiSettingsScreen(
                                 strokeWidth = 2.dp
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Pinging...")
+                            Text(if (settings.appLanguage == "en") "Pinging..." else "جاري الربط والفحص...")
                         } else {
-                            Text("Test connection")
+                            Text(labels.testConnectionBtn)
                         }
                     }
 
@@ -284,13 +303,18 @@ fun GeminiSettingsScreen(
                             onClick = { viewModel.resetConnectionTestResult() },
                             modifier = Modifier.testTag("clear_test_result_button")
                         ) {
-                            Text("Clear")
+                            Text(if (settings.appLanguage == "en") "Clear" else "مسح")
                         }
                     }
                 }
 
                 testResult?.let { res ->
-                    val isSuccess = res.startsWith("Success")
+                    val isSuccess = res.startsWith("Success") || res.startsWith("success") || res.contains("نجاح") || res.contains("متصل")
+                    val labelText = if (isSuccess) {
+                        if (settings.appLanguage == "en") "Success: Connected with Google Servers!" else "تم بنجاح! الاتصال بخوادم جوجل يعمل بكفاءة."
+                    } else {
+                        res
+                    }
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -303,7 +327,7 @@ fun GeminiSettingsScreen(
                         contentAlignment = Alignment.CenterStart
                     ) {
                         Text(
-                            text = res,
+                            text = labelText,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (isSuccess) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error,

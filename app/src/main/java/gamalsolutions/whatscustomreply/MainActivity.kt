@@ -31,6 +31,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import gamalsolutions.whatscustomreply.ui.ArStrings
+import gamalsolutions.whatscustomreply.ui.EnStrings
 import gamalsolutions.whatscustomreply.ui.screens.DashboardScreen
 import gamalsolutions.whatscustomreply.ui.screens.GeminiSettingsScreen
 import gamalsolutions.whatscustomreply.ui.screens.LogsScreen
@@ -67,6 +70,8 @@ sealed class NavigationItem(val route: String, val title: String, val icon: andr
 fun MainAppScreen() {
     val navController = rememberNavController()
     val viewModel: MainViewModel = koinViewModel()
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val labels = if (settings.appLanguage == "en") EnStrings else ArStrings
 
     val navItems = listOf(
         NavigationItem.Dashboard,
@@ -86,13 +91,13 @@ fun MainAppScreen() {
                 title = {
                     Text(
                         text = when (currentRoute) {
-                            "dashboard" -> "WhatsCustomReply"
-                            "replies" -> "Custom Rule Triggers"
-                            "gemini" -> "Gemini API Engine"
-                            "logs" -> "Replying Histograms"
-                            "statistics" -> "System Diagnostics"
-                            "settings" -> "System Preferences"
-                            else -> "WhatsCustomReply"
+                            "dashboard" -> labels.appName
+                            "replies" -> labels.customRepliesHeader
+                            "gemini" -> labels.geminiEngineHeader
+                            "logs" -> labels.logHeader
+                            "statistics" -> labels.stats
+                            "settings" -> labels.settings
+                            else -> labels.appName
                         },
                         fontWeight = FontWeight.ExtraBold
                     )
@@ -108,9 +113,17 @@ fun MainAppScreen() {
                 modifier = Modifier.testTag("main_bottom_nav_bar")
             ) {
                 navItems.forEach { item ->
+                    val title = when (item) {
+                        NavigationItem.Dashboard -> labels.home
+                        NavigationItem.Replies -> labels.rules
+                        NavigationItem.Gemini -> labels.gemini
+                        NavigationItem.Logs -> labels.logs
+                        NavigationItem.Statistics -> labels.stats
+                        NavigationItem.Settings -> labels.settings
+                    }
                     NavigationBarItem(
-                        icon = { Icon(item.icon, contentDescription = item.title) },
-                        label = { Text(item.title, maxLines = 1) },
+                        icon = { Icon(item.icon, contentDescription = title) },
+                        label = { Text(title, maxLines = 1) },
                         selected = currentRoute == item.route,
                         onClick = {
                             navController.navigate(item.route) {
@@ -147,7 +160,18 @@ fun MainAppScreen() {
                 GeminiSettingsScreen(viewModel = viewModel)
             }
             composable(NavigationItem.Logs.route) {
-                LogsScreen(viewModel = viewModel)
+                LogsScreen(
+                    viewModel = viewModel,
+                    onNavigateToReplies = {
+                        navController.navigate(NavigationItem.Replies.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                )
             }
             composable(NavigationItem.Statistics.route) {
                 StatisticsScreen(viewModel = viewModel)

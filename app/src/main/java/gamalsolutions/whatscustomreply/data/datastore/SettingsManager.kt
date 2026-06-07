@@ -22,7 +22,8 @@ data class AppSettings(
     val isServiceEnabled: Boolean,
     val replyMode: String, // "CUSTOM", "GEMINI", "HYBRID"
     val geminiModel: String,
-    val systemPrompt: String
+    val systemPrompt: String,
+    val appLanguage: String
 )
 
 class SettingsManager(private val context: Context) {
@@ -41,6 +42,7 @@ class SettingsManager(private val context: Context) {
         val KEY_REPLY_MODE = stringPreferencesKey("reply_mode")
         val KEY_GEMINI_MODEL = stringPreferencesKey("gemini_model")
         val KEY_GEMINI_SYSTEM_PROMPT = stringPreferencesKey("gemini_system_prompt")
+        val KEY_APP_LANGUAGE = stringPreferencesKey("app_language")
     }
 
     val settingsFlow: Flow<AppSettings> = context.dataStore.data.map { preferences ->
@@ -57,7 +59,8 @@ class SettingsManager(private val context: Context) {
             isServiceEnabled = preferences[KEY_SERVICE_ENABLED] ?: true,
             replyMode = preferences[KEY_REPLY_MODE] ?: "CUSTOM",
             geminiModel = preferences[KEY_GEMINI_MODEL] ?: "gemini-2.5-flash",
-            systemPrompt = preferences[KEY_GEMINI_SYSTEM_PROMPT] ?: "You are an automated WhatsApp helper. Draft a short, concise, polite, and helpful answer."
+            systemPrompt = preferences[KEY_GEMINI_SYSTEM_PROMPT] ?: "You are an automated WhatsApp helper. Draft a short, concise, polite, and helpful answer.",
+            appLanguage = preferences[KEY_APP_LANGUAGE] ?: "ar" // Default to Arabic as requested by user's prompt language
         )
     }
 
@@ -74,6 +77,7 @@ class SettingsManager(private val context: Context) {
     suspend fun updateReplyMode(value: String) = set(KEY_REPLY_MODE, value)
     suspend fun updateGeminiModel(value: String) = set(KEY_GEMINI_MODEL, value)
     suspend fun updateSystemPrompt(value: String) = set(KEY_GEMINI_SYSTEM_PROMPT, value)
+    suspend fun updateAppLanguage(value: String) = set(KEY_APP_LANGUAGE, value)
 
     private suspend fun <T> set(key: Preferences.Key<T>, value: T) {
         context.dataStore.edit { preferences ->

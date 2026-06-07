@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ClearAll
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.*
@@ -25,6 +26,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import gamalsolutions.whatscustomreply.data.database.AutoReplyLogEntity
+import gamalsolutions.whatscustomreply.ui.ArStrings
+import gamalsolutions.whatscustomreply.ui.EnStrings
 import gamalsolutions.whatscustomreply.ui.viewmodel.MainViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -33,9 +36,12 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LogsScreen(
-    viewModel: MainViewModel
+    viewModel: MainViewModel,
+    onNavigateToReplies: () -> Unit = {}
 ) {
     val logs by viewModel.logs.collectAsStateWithLifecycle()
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
+    val labels = if (settings.appLanguage == "en") EnStrings else ArStrings
     var showConfirmClearDialog by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -64,12 +70,12 @@ fun LogsScreen(
         ) {
             Column {
                 Text(
-                    text = "Message Logs",
+                    text = labels.logHeader,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.ExtraBold
                 )
                 Text(
-                    text = "Track incoming WhatsApp inputs and automated answers in real-time.",
+                    text = labels.logDesc,
                     fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -103,13 +109,17 @@ fun LogsScreen(
                             )
                         }
                         Text(
-                            text = "No history recorded yet",
+                            text = labels.noLogs,
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp,
                             textAlign = TextAlign.Center
                         )
                         Text(
-                            text = "When other users message you on WhatsApp, incoming requests and response outputs will populate here.",
+                            text = if (settings.appLanguage == "en") {
+                                "When other users message you on WhatsApp, incoming requests and response outputs will populate here."
+                            } else {
+                                "عندما تتوصل برسائل على حساب واتساب الخاص بك من جهات اتصال مختلفة، سيقوم التطبيق بتجربة فحص القواعد والرد التلقائي عليها وسيتم عرض البث المباشر هنا."
+                            },
                             fontSize = 13.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
@@ -125,7 +135,15 @@ fun LogsScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(logs, key = { it.id }) { log ->
-                        LogItemCard(log = log)
+                        LogItemCard(
+                            log = log,
+                            labels = labels,
+                            settings = settings,
+                            onAddRuleClick = { contactName ->
+                                viewModel.setPrefilledContact(contactName)
+                                onNavigateToReplies()
+                            }
+                        )
                     }
                 }
             }
@@ -135,8 +153,16 @@ fun LogsScreen(
     if (showConfirmClearDialog) {
         AlertDialog(
             onDismissRequest = { showConfirmClearDialog = false },
-            title = { Text("Clear All Logs?") },
-            text = { Text("This will permanently delete the history of all processed messages and replies. This action cannot be undone.") },
+            title = { Text(labels.clearHistory) },
+            text = {
+                Text(
+                    if (settings.appLanguage == "en") {
+                        "This will permanently delete the history of all processed messages and replies. This action cannot be undone."
+                    } else {
+                        "سيؤدي هذا إلى حذف سجل كافة الرسائل والردود التلقائية التي تمت أرشفتها نهائياً. لا يمكن التراجع عن هذا الإجراء."
+                    }
+                )
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -146,12 +172,12 @@ fun LogsScreen(
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
                     modifier = Modifier.testTag("confirm_clear_logs_button")
                 ) {
-                    Text("Clear All")
+                    Text(if (settings.appLanguage == "en") "Confirm Clear" else "تأكيد الحذف")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showConfirmClearDialog = false }) {
-                    Text("Cancel")
+                    Text(labels.cancelBtn)
                 }
             }
         )
@@ -159,7 +185,12 @@ fun LogsScreen(
 }
 
 @Composable
-fun LogItemCard(log: AutoReplyLogEntity) {
+fun LogItemCard(
+    log: AutoReplyLogEntity,
+    labels: gamalsolutions.whatscustomreply.ui.LocStrings,
+    settings: gamalsolutions.whatscustomreply.data.datastore.AppSettings,
+    onAddRuleClick: (String) -> Unit
+) {
     val dateFormat = remember { SimpleDateFormat("HH:mm - d MMM", Locale.getDefault()) }
     val formattedTime = remember(log.timestamp) { dateFormat.format(Date(log.timestamp)) }
 
@@ -176,7 +207,7 @@ fun LogItemCard(log: AutoReplyLogEntity) {
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Header Row: Sender & Success/Fail Code status
+            // Header Row: Sender & Success/Fail Status
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -211,7 +242,7 @@ fun LogItemCard(log: AutoReplyLogEntity) {
             // Body incoming text
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = "Incoming message:",
+                    text = if (settings.appLanguage == "en") "Incoming Message:" else "الرسالة الواردة:",
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold
@@ -223,10 +254,10 @@ fun LogItemCard(log: AutoReplyLogEntity) {
                 )
             }
 
-            // Automated reaction text
+            // Automated reply text
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = "Replied output:",
+                    text = if (settings.appLanguage == "en") "Replied output:" else "الرد التلقائي المرسل:",
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.tertiary,
                     fontWeight = FontWeight.Bold
@@ -260,10 +291,44 @@ fun LogItemCard(log: AutoReplyLogEntity) {
                 }
 
                 Text(
-                    text = if (log.isSuccess) "Sent reply" else "Skipped/Failed",
+                    text = if (log.isSuccess) {
+                        if (settings.appLanguage == "en") "Sent Successfully" else "تم الإرسال بنجاح"
+                    } else {
+                        if (settings.appLanguage == "en") "Skipped / Ignored" else "تم التجاوز / التصفية"
+                    },
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
                     color = if (log.isSuccess) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error
+                )
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+
+            OutlinedButton(
+                onClick = { onAddRuleClick(log.senderName) },
+                shape = RoundedCornerShape(10.dp),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
+                ),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = MaterialTheme.colorScheme.primary
+                ),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("log_quick_add_rule_${log.id}")
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Add,
+                    contentDescription = "Quick Add Rule Icon",
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = labels.quickAddRuleForContact,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
                 )
             }
         }

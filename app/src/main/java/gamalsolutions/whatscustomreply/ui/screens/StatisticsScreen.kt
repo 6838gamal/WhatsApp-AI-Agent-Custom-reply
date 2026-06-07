@@ -25,6 +25,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import gamalsolutions.whatscustomreply.ui.ArStrings
+import gamalsolutions.whatscustomreply.ui.EnStrings
 import gamalsolutions.whatscustomreply.ui.viewmodel.MainViewModel
 
 @Composable
@@ -32,8 +34,10 @@ fun StatisticsScreen(
     viewModel: MainViewModel
 ) {
     val logs by viewModel.logs.collectAsStateWithLifecycle()
+    val settings by viewModel.settings.collectAsStateWithLifecycle()
     val totalCount by viewModel.totalLogCount.collectAsStateWithLifecycle()
     val successCount by viewModel.successLogCount.collectAsStateWithLifecycle()
+    val labels = if (settings.appLanguage == "en") EnStrings else ArStrings
 
     val scrollState = rememberScrollState()
 
@@ -57,12 +61,16 @@ fun StatisticsScreen(
     ) {
         Column {
             Text(
-                text = "Performance & Statistics",
+                text = labels.stats,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.ExtraBold
             )
             Text(
-                text = "Observe live performance stats, custom keywords hit frequencies, and API responses.",
+                text = if (settings.appLanguage == "en") {
+                    "Observe live performance stats, custom keywords hit frequencies, and API responses."
+                } else {
+                    "متابعة إحصائيات الأداء واستهلاك البرمجيات، وتكرار مطابقة الكلمات المفتاحية الذكية للرد التلقائي."
+                },
                 fontSize = 13.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -82,10 +90,18 @@ fun StatisticsScreen(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Text("Hit Rate", fontSize = 11.sp, color = MaterialTheme.colorScheme.primary)
+                    Text(
+                        text = if (settings.appLanguage == "en") "Hit Rate" else "نسبة الاستجابة",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                     val rate = if (totalCount > 0) (successCount * 100) / totalCount else 0
                     Text("$rate%", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                    Text("Successful Auto-run", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        text = if (settings.appLanguage == "en") "Successful Auto-run" else "نسبة مطابقة الرد الناجحة",
+                        fontSize = 10.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
 
@@ -98,9 +114,17 @@ fun StatisticsScreen(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Text("Failed/Ignored", fontSize = 11.sp, color = MaterialTheme.colorScheme.secondary)
+                    Text(
+                        text = if (settings.appLanguage == "en") "Failed/Ignored" else "فشل / تم التجاهل",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
                     Text("$skippedCount", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-                    Text("Messages filtered out", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        text = if (settings.appLanguage == "en") "Messages filtered out" else "الرسائل التي تم تصفيتها وتجاوزها",
+                        fontSize = 10.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }
@@ -123,7 +147,11 @@ fun StatisticsScreen(
                         contentDescription = "Analytics Details",
                         tint = MaterialTheme.colorScheme.primary
                     )
-                    Text("Replied Engine Distribution", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text(
+                        text = if (settings.appLanguage == "en") "Replied Engine Distribution" else "توزيع محركات وصيغ الردود",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
                 }
 
                 // Split metrics row
@@ -136,7 +164,7 @@ fun StatisticsScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(Icons.Filled.Chat, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
-                        Text("Custom Rules: $customRepliesCount", fontSize = 13.sp)
+                        Text("${labels.modeCustom}: $customRepliesCount", fontSize = 13.sp)
                     }
 
                     Row(
@@ -144,7 +172,7 @@ fun StatisticsScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(16.dp))
-                        Text("Gemini AI: $geminiRepliesCount", fontSize = 13.sp)
+                        Text("${labels.modeGemini}: $geminiRepliesCount", fontSize = 13.sp)
                     }
                 }
 
@@ -179,7 +207,11 @@ fun StatisticsScreen(
                 }
 
                 Text(
-                    text = "A higher custom rules count implies matches with preconfigured keywords. Gemini AI handles flexible conversational topics.",
+                    text = if (settings.appLanguage == "en") {
+                        "A higher custom rules count implies matches with preconfigured keywords. Gemini AI handles flexible conversational topics."
+                    } else {
+                        "يشير الارتفاع في عدد القواعد والردود المخصصة لتفعيل الكلمات المفتاحية اليدوية، بينما يتولى جيميني الرد على العبارات الحرة والدردشات العامة المفتوحة."
+                    },
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -204,7 +236,11 @@ fun StatisticsScreen(
                         contentDescription = "Daily History Diagram",
                         tint = MaterialTheme.colorScheme.secondary
                     )
-                    Text("Message Volumes Timeline", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text(
+                        text = if (settings.appLanguage == "en") "Message Volumes Timeline" else "المخطط الزمني لحجم النشاط والرسائل",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
                 }
 
                 // Modern visual graph representation
@@ -215,7 +251,7 @@ fun StatisticsScreen(
                 val daysCounts = remember(logs) {
                     // Group log occurrences into 7 generic categories or trace the timeline back
                     val counts = IntArray(7) { 0 }
-                    logs.take(30).forEachIndexed { index, entity ->
+                    logs.take(30).forEachIndexed { index, _ ->
                         val dayIndex = (index % 7)
                         counts[dayIndex] = counts[dayIndex] + 1
                     }
@@ -266,7 +302,11 @@ fun StatisticsScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    val daysLabels = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+                    val daysLabels = if (settings.appLanguage == "en") {
+                        listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+                    } else {
+                        listOf("إث", "ثل", "رب", "خم", "جم", "سب", "أح")
+                    }
                     daysLabels.forEach { label ->
                         Text(
                             text = label,
@@ -294,7 +334,11 @@ fun StatisticsScreen(
                 modifier = Modifier.size(16.dp)
             )
             Text(
-                text = "Data metrics are saved locally inside your private Room database.",
+                text = if (settings.appLanguage == "en") {
+                    "Data metrics are saved locally inside your private Room database."
+                } else {
+                    "بيانات وإحصائيات الاستخدام يتم أرشفتها محليًا بالكامل ومحمية داخل قاعدة بيانات Room الآمنة بهاتفك."
+                },
                 fontSize = 11.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

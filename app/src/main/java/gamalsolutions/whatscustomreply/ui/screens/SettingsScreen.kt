@@ -21,6 +21,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import gamalsolutions.whatscustomreply.ui.ArStrings
+import gamalsolutions.whatscustomreply.ui.EnStrings
 import gamalsolutions.whatscustomreply.ui.viewmodel.MainViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -30,6 +32,7 @@ fun SettingsScreen(
 ) {
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val scrollState = rememberScrollState()
+    val labels = if (settings.appLanguage == "en") EnStrings else ArStrings
 
     Column(
         modifier = Modifier
@@ -40,12 +43,12 @@ fun SettingsScreen(
     ) {
         Column {
             Text(
-                text = "Preferences & Constraints",
+                text = labels.generalPreferences,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.ExtraBold
             )
             Text(
-                text = "Configure conditions and boundaries for automatic response replies.",
+                text = labels.generalPreferencesDesc,
                 fontSize = 13.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -71,11 +74,11 @@ fun SettingsScreen(
                         contentDescription = "Rule Icon",
                         tint = MaterialTheme.colorScheme.primary
                     )
-                    Text("Auto Reply Mode Engine", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text(labels.repliesModeTitle, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 }
 
                 Text(
-                    text = "Specify how incoming messages should be classified and answered.",
+                    text = labels.repliesModeDesc,
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -83,9 +86,9 @@ fun SettingsScreen(
                 Spacer(modifier = Modifier.height(6.dp))
 
                 val modes = listOf(
-                    Triple("CUSTOM", "Custom Replies Only", "Relies entirely on matching keywords."),
-                    Triple("GEMINI", "Gemini AI Engine", "Generate smart, custom replies using Gemini Flash."),
-                    Triple("HYBRID", "Hybrid Responder Mode", "Checks keywords first. Invokes Gemini as fallback.")
+                    Triple("CUSTOM", labels.modeCustom, labels.modeCustomDesc),
+                    Triple("GEMINI", labels.modeGemini, labels.modeGeminiDesc),
+                    Triple("HYBRID", labels.modeHybrid, labels.modeHybridDesc)
                 )
 
                 modes.forEach { (modeKey, title, desc) ->
@@ -96,7 +99,7 @@ fun SettingsScreen(
                             .background(
                                 if (settings.replyMode == modeKey) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
                                 else Color.Transparent
-                            )
+                             )
                             .clickable { viewModel.updateReplyMode(modeKey) }
                             .padding(10.dp)
                             .testTag("reply_mode_option_$modeKey"),
@@ -116,7 +119,67 @@ fun SettingsScreen(
             }
         }
 
-        // 2. Chat Filtering Constraints
+        // 2. App Display Language Preference
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Language,
+                        contentDescription = "Language Preference Icon",
+                        tint = MaterialTheme.colorScheme.secondary
+                    )
+                    Text(labels.appLanguageLabel, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                }
+
+                Text(
+                    text = labels.changeLanguageSettingDesc,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Arabic Button
+                    Button(
+                        onClick = { viewModel.updateAppLanguage("ar") },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (settings.appLanguage == "ar") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = if (settings.appLanguage == "ar") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        modifier = Modifier.weight(1f).testTag("lang_arabic_button")
+                    ) {
+                        Text("العربية")
+                    }
+
+                    // English Button
+                    Button(
+                        onClick = { viewModel.updateAppLanguage("en") },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (settings.appLanguage == "en") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = if (settings.appLanguage == "en") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        modifier = Modifier.weight(1f).testTag("lang_english_button")
+                    ) {
+                        Text("English")
+                    }
+                }
+            }
+        }
+
+        // 3. Chat Filtering Constraints
         Card(
             shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(
@@ -136,7 +199,7 @@ fun SettingsScreen(
                         contentDescription = "Filters icon",
                         tint = MaterialTheme.colorScheme.secondary
                     )
-                    Text("Target Filtering Rules", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text(labels.filterPreferences, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 }
 
                 Row(
@@ -145,8 +208,8 @@ fun SettingsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Ignore Group Chats", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                        Text("Skip automated replies for WhatsApp group notifications.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(labels.ignoreGroupsSetting, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                        Text(labels.ignoreGroupsSettingDesc, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Switch(
                         checked = settings.ignoreGroups,
@@ -163,8 +226,8 @@ fun SettingsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Block Duplicates", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                        Text("Avoid answering identical notifications repeatedly.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(labels.ignoreDuplicatesSetting, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                        Text(labels.ignoreDuplicatesSettingDesc, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Switch(
                         checked = settings.ignoreDuplicates,
@@ -181,8 +244,8 @@ fun SettingsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Reply Once Per User", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                        Text("Only trigger the automated loop once for each contact name.", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(labels.replyOnceSetting, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                        Text(labels.replyOnceSettingDesc, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Switch(
                         checked = settings.replyOncePerUser,
@@ -193,7 +256,7 @@ fun SettingsScreen(
             }
         }
 
-        // 3. Simulated Response Delay Config
+        // 4. Simulated Response Delay Config
         Card(
             shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(
@@ -218,7 +281,7 @@ fun SettingsScreen(
                             contentDescription = "Delay icon",
                             tint = MaterialTheme.colorScheme.tertiary
                         )
-                        Text("Reply Delay Simulation", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        Text(labels.randomDelaySetting, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                     }
                     Switch(
                         checked = settings.randomDelayEnabled,
@@ -228,7 +291,7 @@ fun SettingsScreen(
                 }
 
                 Text(
-                    text = "Simulates natural human behavior by waiting a randomized delay interval before submitting responses.",
+                    text = labels.randomDelaySettingDesc,
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -262,7 +325,7 @@ fun SettingsScreen(
             }
         }
 
-        // 4. Working Hours Schedule
+        // 5. Working Hours Schedule
         Card(
             shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(
@@ -287,7 +350,7 @@ fun SettingsScreen(
                             contentDescription = "Working Hours schedules Icon",
                             tint = MaterialTheme.colorScheme.primary
                         )
-                        Text("Working Hours Limits", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        Text(labels.workingHoursSetting, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                     }
                     Switch(
                         checked = settings.workingHoursEnabled,
@@ -297,7 +360,7 @@ fun SettingsScreen(
                 }
 
                 Text(
-                    text = "When active, auto-replies will only trigger if the message falls within your custom business hours.",
+                    text = labels.workingHoursSettingDesc,
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -310,7 +373,7 @@ fun SettingsScreen(
                         TextField(
                             value = settings.workingHoursStart,
                             onValueChange = { viewModel.updateWorkingHoursStart(it) },
-                            label = { Text("Start Time (HH:mm)") },
+                            label = { Text(labels.workingHoursStartLabel) },
                             placeholder = { Text("09:00") },
                             modifier = Modifier.weight(1f).testTag("working_hours_start_field"),
                             singleLine = true
@@ -319,7 +382,7 @@ fun SettingsScreen(
                         TextField(
                             value = settings.workingHoursEnd,
                             onValueChange = { viewModel.updateWorkingHoursEnd(it) },
-                            label = { Text("End Time (HH:mm)") },
+                            label = { Text(labels.workingHoursEndLabel) },
                             placeholder = { Text("18:00") },
                             modifier = Modifier.weight(1f).testTag("working_hours_end_field"),
                             singleLine = true

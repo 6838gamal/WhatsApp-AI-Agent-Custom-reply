@@ -57,13 +57,26 @@ class MainViewModel(
                 isServiceEnabled = true,
                 replyMode = "CUSTOM",
                 geminiModel = "gemini-2.5-flash",
-                systemPrompt = "You are an automated WhatsApp helper. Draft a short, concise, polite, and helpful answer."
+                systemPrompt = "You are an automated WhatsApp helper. Draft a short, concise, polite, and helpful answer.",
+                appLanguage = "ar"
             )
         )
 
     // Secure SharedPreferences wrapper for UI API key
     private val _geminiApiKey = MutableStateFlow(encryptedPrefs.getGeminiApiKey())
     val geminiApiKey = _geminiApiKey.asStateFlow()
+
+    // Shared prefill state for contact replies shortcut from Logs Screen
+    private val _prefilledContact = MutableStateFlow<String?>(null)
+    val prefilledContact: StateFlow<String?> = _prefilledContact.asStateFlow()
+
+    fun setPrefilledContact(contactName: String?) {
+        _prefilledContact.value = contactName
+    }
+
+    fun clearPrefilledContact() {
+        _prefilledContact.value = null
+    }
 
     fun updateGeminiApiKey(apiKey: String) {
         encryptedPrefs.saveGeminiApiKey(apiKey)
@@ -78,10 +91,10 @@ class MainViewModel(
     val isTestingConnection = _isTestingConnection.asStateFlow()
 
     // --- Custom Reply CRUD Actions ---
-    fun addReply(keyword: String, replyText: String) {
+    fun addReply(keyword: String, replyText: String, contactName: String? = null) {
         viewModelScope.launch {
             repliesRepository.insertReply(
-                CustomReplyEntity(keyword = keyword, replyText = replyText, isEnabled = true)
+                CustomReplyEntity(keyword = keyword, replyText = replyText, isEnabled = true, contactName = contactName)
             )
         }
     }
@@ -168,6 +181,10 @@ class MainViewModel(
 
     fun updateSystemPrompt(value: String) {
         viewModelScope.launch { settingsManager.updateSystemPrompt(value) }
+    }
+
+    fun updateAppLanguage(value: String) {
+        viewModelScope.launch { settingsManager.updateAppLanguage(value) }
     }
 
     // --- Gemini Connection Testing ---

@@ -130,7 +130,7 @@ class WhatsAppNotificationListenerService : NotificationListenerService(), KoinC
         var logMode = "CUSTOM"
 
         // Search Custom Keywords
-        val matchedCustom = findCustomReplyMatch(message)
+        val matchedCustom = findCustomReplyMatch(message, sender)
 
         if (mode == "CUSTOM") {
             replyText = matchedCustom
@@ -192,10 +192,11 @@ class WhatsAppNotificationListenerService : NotificationListenerService(), KoinC
         }
     }
 
-    private suspend fun findCustomReplyMatch(messageText: String): String? {
+    private suspend fun findCustomReplyMatch(messageText: String, sender: String): String? {
         val enabledReplies = repliesRepository.getEnabledReplies()
         for (reply in enabledReplies) {
-            if (messageText.contains(reply.keyword, ignoreCase = true)) {
+            val contactMatch = reply.contactName.isNullOrBlank() || reply.contactName.trim().equals(sender.trim(), ignoreCase = true)
+            if (contactMatch && messageText.contains(reply.keyword, ignoreCase = true)) {
                 return reply.replyText
             }
         }
