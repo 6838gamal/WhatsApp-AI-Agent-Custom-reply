@@ -32,6 +32,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import gamalsolutions.whatscustomreply.ui.ArStrings
 import gamalsolutions.whatscustomreply.ui.EnStrings
 import gamalsolutions.whatscustomreply.ui.screens.DashboardScreen
@@ -85,99 +88,107 @@ fun MainAppScreen() {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = when (currentRoute) {
-                            "dashboard" -> labels.appName
-                            "replies" -> labels.customRepliesHeader
-                            "gemini" -> labels.geminiEngineHeader
-                            "logs" -> labels.logHeader
-                            "statistics" -> labels.stats
-                            "settings" -> labels.settings
-                            else -> labels.appName
-                        },
-                        fontWeight = FontWeight.ExtraBold
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface
-                ),
-                modifier = Modifier.testTag("main_top_app_bar")
-            )
-        },
-        bottomBar = {
-            NavigationBar(
-                modifier = Modifier.testTag("main_bottom_nav_bar")
-            ) {
-                navItems.forEach { item ->
-                    val title = when (item) {
-                        NavigationItem.Dashboard -> labels.home
-                        NavigationItem.Replies -> labels.rules
-                        NavigationItem.Gemini -> labels.gemini
-                        NavigationItem.Logs -> labels.logs
-                        NavigationItem.Statistics -> labels.stats
-                        NavigationItem.Settings -> labels.settings
+    val layoutDirection = if (settings.appLanguage == "ar") {
+        LayoutDirection.Rtl
+    } else {
+        LayoutDirection.Ltr
+    }
+
+    CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = when (currentRoute) {
+                                "dashboard" -> labels.appName
+                                "replies" -> labels.customRepliesHeader
+                                "gemini" -> labels.geminiEngineHeader
+                                "logs" -> labels.logHeader
+                                "statistics" -> labels.stats
+                                "settings" -> labels.settings
+                                else -> labels.appName
+                            },
+                            fontWeight = FontWeight.ExtraBold
+                        )
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surface
+                    ),
+                    modifier = Modifier.testTag("main_top_app_bar")
+                )
+            },
+            bottomBar = {
+                NavigationBar(
+                    modifier = Modifier.testTag("main_bottom_nav_bar")
+                ) {
+                    navItems.forEach { item ->
+                        val title = when (item) {
+                            NavigationItem.Dashboard -> labels.home
+                            NavigationItem.Replies -> labels.rules
+                            NavigationItem.Gemini -> labels.gemini
+                            NavigationItem.Logs -> labels.logs
+                            NavigationItem.Statistics -> labels.stats
+                            NavigationItem.Settings -> labels.settings
+                        }
+                        NavigationBarItem(
+                            icon = { Icon(item.icon, contentDescription = title) },
+                            label = { Text(title, maxLines = 1) },
+                            selected = currentRoute == item.route,
+                            onClick = {
+                                navController.navigate(item.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            },
+                            modifier = Modifier.testTag("nav_item_${item.route}")
+                        )
                     }
-                    NavigationBarItem(
-                        icon = { Icon(item.icon, contentDescription = title) },
-                        label = { Text(title, maxLines = 1) },
-                        selected = currentRoute == item.route,
-                        onClick = {
-                            navController.navigate(item.route) {
+                }
+            }
+        ) { innerPadding ->
+            NavHost(
+                navController = navController,
+                startDestination = NavigationItem.Dashboard.route,
+                modifier = Modifier.padding(innerPadding)
+            ) {
+                composable(NavigationItem.Dashboard.route) {
+                    DashboardScreen(
+                        viewModel = viewModel,
+                        onNavigateToReplies = { navController.navigate(NavigationItem.Replies.route) },
+                        onNavigateToGemini = { navController.navigate(NavigationItem.Gemini.route) },
+                        onNavigateToSettings = { navController.navigate(NavigationItem.Settings.route) }
+                    )
+                }
+                composable(NavigationItem.Replies.route) {
+                    RepliesScreen(viewModel = viewModel)
+                }
+                composable(NavigationItem.Gemini.route) {
+                    GeminiSettingsScreen(viewModel = viewModel)
+                }
+                composable(NavigationItem.Logs.route) {
+                    LogsScreen(
+                        viewModel = viewModel,
+                        onNavigateToReplies = {
+                            navController.navigate(NavigationItem.Replies.route) {
                                 popUpTo(navController.graph.findStartDestination().id) {
                                     saveState = true
                                 }
                                 launchSingleTop = true
                                 restoreState = true
                             }
-                        },
-                        modifier = Modifier.testTag("nav_item_${item.route}")
+                        }
                     )
                 }
-            }
-        }
-    ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = NavigationItem.Dashboard.route,
-            modifier = Modifier.padding(innerPadding)
-        ) {
-            composable(NavigationItem.Dashboard.route) {
-                DashboardScreen(
-                    viewModel = viewModel,
-                    onNavigateToReplies = { navController.navigate(NavigationItem.Replies.route) },
-                    onNavigateToGemini = { navController.navigate(NavigationItem.Gemini.route) },
-                    onNavigateToSettings = { navController.navigate(NavigationItem.Settings.route) }
-                )
-            }
-            composable(NavigationItem.Replies.route) {
-                RepliesScreen(viewModel = viewModel)
-            }
-            composable(NavigationItem.Gemini.route) {
-                GeminiSettingsScreen(viewModel = viewModel)
-            }
-            composable(NavigationItem.Logs.route) {
-                LogsScreen(
-                    viewModel = viewModel,
-                    onNavigateToReplies = {
-                        navController.navigate(NavigationItem.Replies.route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    }
-                )
-            }
-            composable(NavigationItem.Statistics.route) {
-                StatisticsScreen(viewModel = viewModel)
-            }
-            composable(NavigationItem.Settings.route) {
-                SettingsScreen(viewModel = viewModel)
+                composable(NavigationItem.Statistics.route) {
+                    StatisticsScreen(viewModel = viewModel)
+                }
+                composable(NavigationItem.Settings.route) {
+                    SettingsScreen(viewModel = viewModel)
+                }
             }
         }
     }

@@ -156,24 +156,42 @@ fun SettingsScreen(
                     Button(
                         onClick = { viewModel.updateAppLanguage("ar") },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (settings.appLanguage == "ar") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                            contentColor = if (settings.appLanguage == "ar") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                            containerColor = if (settings.appLanguage == "ar") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            contentColor = if (settings.appLanguage == "ar") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
                         ),
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.weight(1f).testTag("lang_arabic_button")
                     ) {
-                        Text("العربية")
+                        if (settings.appLanguage == "ar") {
+                            Icon(
+                                imageVector = Icons.Filled.Check,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                        }
+                        Text("العربية", fontWeight = FontWeight.Bold)
                     }
 
                     // English Button
                     Button(
                         onClick = { viewModel.updateAppLanguage("en") },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (settings.appLanguage == "en") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                            contentColor = if (settings.appLanguage == "en") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                            containerColor = if (settings.appLanguage == "en") MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            contentColor = if (settings.appLanguage == "en") MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
                         ),
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.weight(1f).testTag("lang_english_button")
                     ) {
-                        Text("English")
+                        if (settings.appLanguage == "en") {
+                            Icon(
+                                imageVector = Icons.Filled.Check,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                        }
+                        Text("English", fontWeight = FontWeight.Bold)
                     }
                 }
             }
