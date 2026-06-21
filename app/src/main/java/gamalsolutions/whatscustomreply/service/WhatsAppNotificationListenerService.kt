@@ -2,12 +2,14 @@ package gamalsolutions.whatscustomreply.service
 
 import android.app.Notification
 import android.app.RemoteInput
+import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
 import android.os.Bundle
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
-import gamalsolutions.whatscustomreply.data.api.GeminiRepository
+import gamalsolutions.whatscustomreply.data.api.CustomApiRepository
 import gamalsolutions.whatscustomreply.data.database.AutoReplyLogEntity
 import gamalsolutions.whatscustomreply.data.datastore.AppSettings
 import gamalsolutions.whatscustomreply.data.repository.LogsRepository
@@ -28,7 +30,7 @@ class WhatsAppNotificationListenerService : NotificationListenerService(), KoinC
 
     private val repliesRepository: RepliesRepository by inject()
     private val logsRepository: LogsRepository by inject()
-    private val geminiRepository: GeminiRepository by inject()
+    private val customApiRepository: CustomApiRepository by inject()
     private val settingsManager: gamalsolutions.whatscustomreply.data.datastore.SettingsManager by inject()
 
     private val job = SupervisorJob()
@@ -77,8 +79,104 @@ class WhatsAppNotificationListenerService : NotificationListenerService(), KoinC
                 return@launch
             }
 
-            // Exclude WhatsApp system/call notifications
-            if (rawText.contains("Missed voice call") || rawText.contains("Missed video call") || rawText.contains("Incoming call")) {
+            // WhatsApp Call Handling
+            val isCallNotification = rawText.contains("Missed voice call") || 
+                    rawText.contains("Missed video call") || 
+                    rawText.contains("Incoming call") ||
+                    rawText.contains("مكالمة فائتة") ||
+                    rawText.contains("مكالمة واردة") ||
+                    rawText.contains("Incoming voice call") ||
+                    rawText.contains("Incoming video call")
+
+            if (isCallNotification) {
+                Log.d(TAG, "WhatsApp Call Notification Detected from: $title. Status: $rawText")
+                
+                // Mute or configure audio profile if active ringing
+                if (rawText.contains("Incoming") || rawText.contains("وارد")) {
+                    try {
+                        val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+                        val rMode = when (settings.ringerMode) {
+                            0 -> AudioManager.RINGER_MODE_SILENT
+                            1 -> AudioManager.RINGER_MODE_VIBRATE
+                            else -> AudioManager.RINGER_MODE_NORMAL
+                        }
+                        audioManager.ringerMode = rMode
+                        if (rMode == AudioManager.RINGER_MODE_NORMAL) {
+                            val maxR = audioManager.getStreamMaxVolume(AudioManager.STREAM_RING)
+                            val targetR = (settings.ringerVolume / 100.0 * maxR).toInt()
+                            audioManager.setStreamVolume(AudioManager.STREAM_RING, targetR, 0)
+                        }
+                        val maxM = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+                        val targetM = (settings.mediaVolume / 100.0 * maxM).toInt()
+                        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, targetM, 0)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed adjusting system volumes: ${e.message}")
+                    }
+                }
+
+                // If Call Auto Reply is enabled, reply with callReplyText or custom API call
+                if (settings.callReplyEnabled) {
+                    var finalReplyText = settings.callReplyText
+                    var usedMode = "WHATSAPP_CALL (STATIC)"
+
+                    try {
+                        if (settings.replyMode == "API" || settings.replyMode == "HYBRID") {
+                            val apiResult = customApiRepository.generateReply(
+                                apiUrl = settings.apiUrl,
+                                apiMethod = settings.apiMethod,
+                                apiHeaders = settings.apiHeaders,
+                                apiBodyTemplate = settings.apiBodyTemplate,
+                                apiResponsePath = settings.apiResponsePath,
+                                sender = title,
+                                message = "Incoming Call (WhatsApp): $rawText"
+                            )
+                            apiResult.onSuccess { text ->
+                                finalReplyText = text
+                                usedMode = "WHATSAPP_CALL (API)"
+                            }.onFailure { e ->
+                                Log.e(TAG, "WhatsApp Call API response failed, falling back to static", e)
+                                finalReplyText = "${settings.callReplyText} (API Error: ${e.localizedMessage ?: e.message})"
+                                usedMode = "WHATSAPP_CALL (API_FALLBACK)"
+                            }
+                        }
+
+                        val sendMethodSuccess = replyToNotification(sbn, finalReplyText)
+                        
+                        logsRepository.insertLog(
+                            AutoReplyLogEntity(
+                                senderName = title,
+                                messageText = "WhatsApp Call: $rawText",
+                                replyText = finalReplyText,
+                                mode = usedMode,
+                                isSuccess = sendMethodSuccess
+                            )
+                        )
+                    } catch (e: Exception) {
+                        Log.e(TAG, "WhatsApp Call Auto Reply crashed during execution but handled safely", e)
+                        try {
+                            logsRepository.insertLog(
+                                AutoReplyLogEntity(
+                                    senderName = title,
+                                    messageText = "WhatsApp Call: $rawText",
+                                    replyText = "Error handling auto reply: ${e.message}",
+                                    mode = "WHATSAPP_CALL (SERVICE_ERROR)",
+                                    isSuccess = false
+                                )
+                            )
+                        } catch (nestedEx: Exception) {
+                            Log.e(TAG, "Nested log write failure: ${nestedEx.message}")
+                        }
+                    }
+                }
+
+                if (settings.dismissNotificationsEnabled) {
+                    try {
+                        cancelNotification(sbn.key)
+                        Log.d(TAG, "WhatsApp Call notification dismissed cleanly from screen.")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed dismissing WhatsApp call: ${e.message}")
+                    }
+                }
                 return@launch
             }
 
@@ -125,7 +223,7 @@ class WhatsAppNotificationListenerService : NotificationListenerService(), KoinC
         message: String,
         settings: AppSettings
     ) {
-        var mode = settings.replyMode // "CUSTOM", "GEMINI", "HYBRID"
+        val mode = settings.replyMode // "CUSTOM", "API", "HYBRID"
         var replyText: String? = null
         var logMode = "CUSTOM"
 
@@ -135,28 +233,36 @@ class WhatsAppNotificationListenerService : NotificationListenerService(), KoinC
         if (mode == "CUSTOM") {
             replyText = matchedCustom
             logMode = "CUSTOM"
-        } else if (mode == "GEMINI") {
-            logMode = "GEMINI"
-            val apiResult = geminiRepository.generateReply(
-                prompt = "Sender: $sender\nMessage: $message",
-                systemPrompt = settings.systemPrompt,
-                model = settings.geminiModel
+        } else if (mode == "API") {
+            logMode = "CUSTOM_API"
+            val apiResult = customApiRepository.generateReply(
+                apiUrl = settings.apiUrl,
+                apiMethod = settings.apiMethod,
+                apiHeaders = settings.apiHeaders,
+                apiBodyTemplate = settings.apiBodyTemplate,
+                apiResponsePath = settings.apiResponsePath,
+                sender = sender,
+                message = message
             )
             apiResult.onSuccess { text -> replyText = text }
-            apiResult.onFailure { e -> Log.e(TAG, "Gemini reply generation failed: ${e.message}") }
+            apiResult.onFailure { e -> Log.e(TAG, "Custom API reply generation failed: ${e.message}") }
         } else if (mode == "HYBRID") {
             if (matchedCustom != null) {
                 replyText = matchedCustom
                 logMode = "CUSTOM (HYBRID)"
             } else {
-                logMode = "GEMINI (HYBRID)"
-                val apiResult = geminiRepository.generateReply(
-                    prompt = "Sender: $sender\nMessage: $message",
-                    systemPrompt = settings.systemPrompt,
-                    model = settings.geminiModel
+                logMode = "CUSTOM_API (HYBRID)"
+                val apiResult = customApiRepository.generateReply(
+                    apiUrl = settings.apiUrl,
+                    apiMethod = settings.apiMethod,
+                    apiHeaders = settings.apiHeaders,
+                    apiBodyTemplate = settings.apiBodyTemplate,
+                    apiResponsePath = settings.apiResponsePath,
+                    sender = sender,
+                    message = message
                 )
                 apiResult.onSuccess { text -> replyText = text }
-                apiResult.onFailure { e -> Log.e(TAG, "Gemini hybrid reply failed: ${e.message}") }
+                apiResult.onFailure { e -> Log.e(TAG, "Custom API hybrid reply failed: ${e.message}") }
             }
         }
 
@@ -189,6 +295,15 @@ class WhatsAppNotificationListenerService : NotificationListenerService(), KoinC
         if (isSuccess && replyText != null) {
             repliedUsers.add(sender)
             Log.d(TAG, "Automated reply sent successfully using RemoteInput!")
+        }
+
+        if (settings.dismissNotificationsEnabled) {
+            try {
+                cancelNotification(sbn.key)
+                Log.d(TAG, "WhatsApp chat notification with key ${sbn.key} dismissed cleanly from screen.")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed dismissing WhatsApp chat: ${e.message}")
+            }
         }
     }
 

@@ -7,11 +7,12 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -62,7 +63,7 @@ class MainActivity : ComponentActivity() {
 sealed class NavigationItem(val route: String, val title: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
     object Dashboard : NavigationItem("dashboard", "Home", Icons.Filled.Dashboard)
     object Replies : NavigationItem("replies", "Rules", Icons.Filled.Chat)
-    object Gemini : NavigationItem("gemini", "Gemini", Icons.Filled.AutoAwesome)
+    object Gemini : NavigationItem("gemini", "Custom API", Icons.Filled.Code)
     object Logs : NavigationItem("logs", "Logs", Icons.Filled.History)
     object Statistics : NavigationItem("statistics", "Stats", Icons.Filled.BarChart)
     object Settings : NavigationItem("settings", "Settings", Icons.Filled.Settings)
@@ -75,6 +76,21 @@ fun MainAppScreen() {
     val viewModel: MainViewModel = koinViewModel()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val labels = if (settings.appLanguage == "en") EnStrings else ArStrings
+    val appError by viewModel.appError.collectAsStateWithLifecycle()
+
+    if (appError != null) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { viewModel.dismissAppError() },
+            title = { Text(if (settings.appLanguage == "en") "Notification Auto Reply Alert" else "تنبيه الرد التلقائي الذكي") },
+            text = { Text(appError ?: "") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { viewModel.dismissAppError() }) {
+                    Text(if (settings.appLanguage == "en") "OK" else "حسناً")
+                }
+            },
+            icon = { Icon(Icons.Filled.Warning, contentDescription = "Error", tint = androidx.compose.material3.MaterialTheme.colorScheme.error) }
+        )
+    }
 
     val navItems = listOf(
         NavigationItem.Dashboard,

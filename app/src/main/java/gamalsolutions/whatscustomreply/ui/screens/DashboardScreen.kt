@@ -266,8 +266,8 @@ fun DashboardScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.AutoAwesome,
-                        contentDescription = "Gemini Settings",
+                        imageVector = Icons.Filled.Code,
+                        contentDescription = "API Settings",
                         tint = MaterialTheme.colorScheme.secondary
                     )
                     Spacer(modifier = Modifier.height(16.dp))
@@ -478,19 +478,23 @@ fun DashboardScreen(
                                     outputText = matched
                                     transactionSuccess = true
                                 }
-                            } else if (settings.replyMode == "GEMINI") {
-                                logMode = "GEMINI (SIMULATED)"
-                                simulationResponse = if (settings.appLanguage == "en") "Invoking Gemini API..." else "جاري توليد رد ذكي عبر جيميني..."
-                                val apiResult = viewModel.geminiRepository.generateReply(
-                                    prompt = "Sender: $testSender\nMessage: $testMsg",
-                                    systemPrompt = settings.systemPrompt,
-                                    model = settings.geminiModel
+                            } else if (settings.replyMode == "API") {
+                                logMode = "CUSTOM_API (SIMULATED)"
+                                simulationResponse = if (settings.appLanguage == "en") "Invoking Custom API..." else "جاري استدعاء رابط واجهة البيانات..."
+                                val apiResult = viewModel.customApiRepository.generateReply(
+                                    apiUrl = settings.apiUrl,
+                                    apiMethod = settings.apiMethod,
+                                    apiHeaders = settings.apiHeaders,
+                                    apiBodyTemplate = settings.apiBodyTemplate,
+                                    apiResponsePath = settings.apiResponsePath,
+                                    sender = testSender,
+                                    message = testMsg
                                 )
                                 apiResult.onSuccess { text ->
                                     outputText = text
                                     transactionSuccess = true
                                 }.onFailure { e ->
-                                    outputText = "Gemini Error: ${e.message}"
+                                    outputText = "API Error: ${e.message}"
                                 }
                             } else if (settings.replyMode == "HYBRID") {
                                 if (matched != null) {
@@ -498,18 +502,22 @@ fun DashboardScreen(
                                     transactionSuccess = true
                                     logMode = "CUSTOM (SIMULATED)"
                                 } else {
-                                    logMode = "GEMINI (SIMULATED)"
-                                    simulationResponse = if (settings.appLanguage == "en") "Keyword failed. Invoking Gemini AI fallback..." else "لم يتم مطابقة كلمة مفتاحية. جاري استدعاء نموذج جيميني..."
-                                    val apiResult = viewModel.geminiRepository.generateReply(
-                                        prompt = "Sender: $testSender\nMessage: $testMsg",
-                                        systemPrompt = settings.systemPrompt,
-                                        model = settings.geminiModel
+                                    logMode = "CUSTOM_API (SIMULATED)"
+                                    simulationResponse = if (settings.appLanguage == "en") "Keyword failed. Invoking Custom API fallback..." else "لم يتم مطابقة الكلمة. جاري الاتصال بواجهة البيانات..."
+                                    val apiResult = viewModel.customApiRepository.generateReply(
+                                        apiUrl = settings.apiUrl,
+                                        apiMethod = settings.apiMethod,
+                                        apiHeaders = settings.apiHeaders,
+                                        apiBodyTemplate = settings.apiBodyTemplate,
+                                        apiResponsePath = settings.apiResponsePath,
+                                        sender = testSender,
+                                        message = testMsg
                                     )
                                     apiResult.onSuccess { text ->
                                         outputText = text
                                         transactionSuccess = true
                                     }.onFailure { e ->
-                                        outputText = "Gemini Fallback Error: ${e.message}"
+                                        outputText = "API Fallback Error: ${e.message}"
                                     }
                                 }
                             }

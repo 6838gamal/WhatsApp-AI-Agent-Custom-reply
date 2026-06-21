@@ -74,7 +74,7 @@ sealed class LocStrings {
     abstract val filterGlobal: String
     abstract val noRepliesForSelectedContact: String
     
-    // GeminiSettingsScreen
+    // Custom API strings
     abstract val geminiEngineHeader: String
     abstract val geminiEngineDesc: String
     abstract val apiKeyLabel: String
@@ -83,6 +83,25 @@ sealed class LocStrings {
     abstract val selectModel: String
     abstract val customSystemPrompt: String
     abstract val customSystemPromptDesc: String
+
+    // New additions
+    abstract val apiUrlLabel: String
+    abstract val apiMethodLabel: String
+    abstract val apiHeadersLabel: String
+    abstract val apiBodyTemplateLabel: String
+    abstract val apiResponsePathLabel: String
+    abstract val callReplyHeader: String
+    abstract val callReplyDesc: String
+    abstract val callReplyEnabledLabel: String
+    abstract val callReplyTextLabel: String
+    abstract val audioSettingsHeader: String
+    abstract val audioSettingsDesc: String
+    abstract val ringerVolumeLabel: String
+    abstract val mediaVolumeLabel: String
+    abstract val ringerModeLabel: String
+    abstract val ringerModeSilent: String
+    abstract val ringerModeVibrate: String
+    abstract val ringerModeNormal: String
     
     // LogsScreen
     abstract val logHeader: String
@@ -109,6 +128,12 @@ sealed class LocStrings {
     abstract val changeLanguageSettingDesc: String
     abstract val appLanguageLabel: String
     
+    // Quiet Mode (Distraction-Free) Strings
+    abstract val quietModeHeader: String
+    abstract val quietModeDesc: String
+    abstract val dismissNotificationsSetting: String
+    abstract val dismissNotificationsSettingDesc: String
+    
     // Modes
     abstract val modeCustom: String
     abstract val modeCustomDesc: String
@@ -122,13 +147,13 @@ object ArStrings : LocStrings() {
     override val appName = "المجيب الآلي المخصص"
     override val home = "الرئيسية"
     override val rules = "القواعد"
-    override val gemini = "جيميني"
+    override val gemini = "واجهة برمجة التطبيقات (API)"
     override val logs = "السجلات"
     override val stats = "الإحصائيات"
     override val settings = "الإعدادات"
     
-    override val dashboardTitle = "المجيب الذكي للواتساب عبر الذكاء الاصطناعي"
-    override val dashboardSubtitle = "مساعد دردشة تلقائي يعمل محليًا بالكامل داخل جهازك."
+    override val dashboardTitle = "المجيب الآلي المخصص لواتساب"
+    override val dashboardSubtitle = "مساعد دردشة تلقائي محلي بالكامل لخدمة عملائك والرد على المكالمات."
     override val notificationAccessHeader = "مطلوب صلاحية الوصول للإشعارات"
     override val notificationAccessBody = "يتطلب أندرويد تفعيل صلاحية الوصول للإشعارات لهذا التطبيق ليتمكن من قراءة إشعارات واتساب الواردة والرد عليها تلقائيًا."
     override val grantPermission = "منح الصلاحية"
@@ -143,12 +168,12 @@ object ArStrings : LocStrings() {
     override val quickShortcuts = "الوصول السريع"
     override val rulesBuilder = "قواعد الرد المخصصة"
     override val rulesBuilderDesc = "إدارة الكلمات المفتاحية والردود الثابتة."
-    override val geminiSettings = "إعدادات محرك جيميني"
-    override val geminiSettingsDesc = "تهيئة مفتاح API واختيار النموذج وصياغة التوجيه الذكي."
+    override val geminiSettings = "ضبط واجهة API المخصصة"
+    override val geminiSettingsDesc = "تهيئة رابط واجهة البيانات الخاص بك، والترويسات، واستخراج الجسم من الاستجابات."
     override val filterPreferences = "خيارات التصفية والقيود"
     override val filterPreferencesDesc = "تحديد أوقات العمل، والمهلة الزمنية، وتجنب الرد المتكرر المزعج."
     override val simulationHeader = "محاكاة الرد التلقائي للواتساب (التجربة والتشخيص)"
-    override val simulationBody = "اختبر قواعد الرد المخصصة أو محرك جيميني مباشرة دون تفعيل الخدمة أو إرسال رسائل حقيقية."
+    override val simulationBody = "اختبر قواعد الرد المخصصة أو محرك واجهة برمجة API مباشرة دون تفعيل الخدمة أو إرسال رسائل حقيقية."
     override val simSenderLabel = "اسم جهة الاتصال (المرسل)"
     override val simMessageLabel = "نص الرسالة الواردة"
     override val simulateBtn = "بدء المحاكاة"
@@ -189,14 +214,33 @@ object ArStrings : LocStrings() {
     override val filterGlobal = "قواعد عامة"
     override val noRepliesForSelectedContact = "لا توجد ردود آليّة مخصصة لجهة الاتصال هذه بعد. يمكنك إضافة رد بالضغط على زر +"
     
-    override val geminiEngineHeader = "إعدادات محرك الذكاء الاصطناعي (Gemini)"
-    override val geminiEngineDesc = "تحكم في إعدادات الاتصال بمحرك جوجل جيميني للردود بالذكاء الاصطناعي."
-    override val apiKeyLabel = "مفتاح API الخاص بجيميني"
+    override val geminiEngineHeader = "إعدادات واجهة برمجة التطبيقات (API)"
+    override val geminiEngineDesc = "تحكم في إعدادات الاتصال بواجهتك الخاصة (Custom API Endpoint) لمطابقة وتوليد الردود."
+    override val apiKeyLabel = "رابط واجهة البيانات (API URL)"
     override val testConnectionBtn = "فحص الاتصال"
-    override val testingConnection = "جاري الاتصال بجيميني وفحص المفتاح المضاف..."
-    override val selectModel = "اختر إصدار نموذج جيميني"
-    override val customSystemPrompt = "التوجيه الأساسي للنموذج (System Prompt)"
-    override val customSystemPromptDesc = "وجه الذكاء الاصطناعي وحدد أسلوب تعامله وشخصيته وتصرفاته وطريقة رده بدقة."
+    override val testingConnection = "جاري الاتصال بواجهة البيانات وفحص الرد التلقائي..."
+    override val selectModel = "طريقة الإرسال (HTTP Method)"
+    override val customSystemPrompt = "قالب جسم الطلب (JSON Request Body)"
+    override val customSystemPromptDesc = "صِغ قالب الطلب لدعم كافة المتغيرات. يمكنك تدوين {sender} لاسم جهة الاتصال و {message} لنص الرسالة الواردة."
+
+    // New additions (Arabic)
+    override val apiUrlLabel = "رابط واجهة واجهة البيانات (Endpoint URL)"
+    override val apiMethodLabel = "طريقة الطلب (HTTP Method)"
+    override val apiHeadersLabel = "الترويسات المخصصة (كل سطر Key: Value)"
+    override val apiBodyTemplateLabel = "جسم الطلب (Template Body)"
+    override val apiResponsePathLabel = "مسار استخراج الرد من الاستجابة (JSON Path)"
+    override val callReplyHeader = "الرد التلقائي للاتصالات"
+    override val callReplyDesc = "الرد برسالة نصية أو واتساب تلقائياً عند كشف المكالمات الواردة والفائتة مع تعديل الصوت."
+    override val callReplyEnabledLabel = "تمكين الرد التلقائي للمكالمات"
+    override val callReplyTextLabel = "نص رسالة الرد على المكالمات"
+    override val audioSettingsHeader = "إعدادات الصوت والاهتزاز للمكالمات"
+    override val audioSettingsDesc = "تحكم بمستوى صوت رنين الهاتف وصوت الوسائط ووضع الرنين تلقائياً عند تفعيل المجيب."
+    override val ringerVolumeLabel = "حجم صوت الجرس الرنين"
+    override val mediaVolumeLabel = "حجم صوت الوسائط والميديا"
+    override val ringerModeLabel = "وضع نغمة الرنين"
+    override val ringerModeSilent = "صامت"
+    override val ringerModeVibrate = "اهتزاز"
+    override val ringerModeNormal = "وضع عادي ورنين"
     
     override val logHeader = "سجل الإرسال والردود"
     override val logDesc = "متابعة وتحليل الرسائل الواردة والردود الآلية المباشرة التي قام بها التطبيق."
@@ -221,25 +265,31 @@ object ArStrings : LocStrings() {
     override val changeLanguageSettingDesc = "اختر اللغة المفضلة لواجهة المستخدم وكافة أنحاء التطبيق."
     override val appLanguageLabel = "لغة عرض التطبيق"
     
-    override val modeCustom = "الردود المخصصة فقط"
+    // Quiet Mode (Distraction-Free) Strings (Arabic)
+    override val quietModeHeader = "نمط العمل الهادئ (بدون مقاطعة)"
+    override val quietModeDesc = "خصص طريقة عرض وسلوك الإشعارات الواردة حتى يتسنى لك مواصلة استخدام الهاتف لإبرام الصفقات ومتابعة مهامك دون أي مقاطعة بصرية على الشاشة."
+    override val dismissNotificationsSetting = "إخفاء و كتم إشعارات المحادثات والمكالمات"
+    override val dismissNotificationsSettingDesc = "إلغاء الإشعارات تلقائياً من شاشة القفل والمنبثقات بمجرد الرد عليها، لتواصل عملك دون انقطاع، مع الحفاظ على كافة التفاصيل مسجلة داخل هذا التطبيق."
+    
+    override val modeCustom = "القواعد والكلمات المفتاحية"
     override val modeCustomDesc = "الاعتماد بالكامل على مطابقة الكلمات المفتاحية والقواعد اليدوية."
-    override val modeGemini = "محرك جيميني الذكي"
-    override val modeGeminiDesc = "توليد ردود تفاعلية طبيعية وذكية باستخدام Google Gemini."
-    override val modeHybrid = "وضع الرد الهجين (المزدوج)"
-    override val modeHybridDesc = "التحقق أولاً من الكلمات المفتاحية المخصصة، ثم استخدام جيميني كبديل ذكي."
+    override val modeGemini = "استدعاء رابط واجهة البيانات (API)"
+    override val modeGeminiDesc = "إرسال البيانات للرابط الخارجي (API) الخاص بك وتوليد الردود برمجياً."
+    override val modeHybrid = "وضع الرد الهجين (مزدوج)"
+    override val modeHybridDesc = "التحقق أولاً من الكلمات المفتاحية، ثم استدعاء واجهة برمجة API كخيار بديل."
 }
 
 object EnStrings : LocStrings() {
     override val appName = "WhatsCustomReply"
     override val home = "Home"
     override val rules = "Rules"
-    override val gemini = "Gemini"
+    override val gemini = "Custom API"
     override val logs = "Logs"
     override val stats = "Stats"
     override val settings = "Settings"
     
-    override val dashboardTitle = "WhatsApp AI Auto-Responder"
-    override val dashboardSubtitle = "Automated chat assistant running locally inside your device."
+    override val dashboardTitle = "WhatsApp Auto-Responder"
+    override val dashboardSubtitle = "Automated chat assistant and call responder inside your device."
     override val notificationAccessHeader = "Notification Access Required"
     override val notificationAccessBody = "Android requires Notification Access permission for this app to detect incoming WhatsApp notifications and trigger replies."
     override val grantPermission = "Grant Permission"
@@ -254,12 +304,12 @@ object EnStrings : LocStrings() {
     override val quickShortcuts = "Quick Shortcuts"
     override val rulesBuilder = "Custom Keyword Rules"
     override val rulesBuilderDesc = "Manage text matching keywords and static replies."
-    override val geminiSettings = "Gemini AI Configuration"
-    override val geminiSettingsDesc = "Configure API key, model version, and custom system context."
+    override val geminiSettings = "Custom API Integration"
+    override val geminiSettingsDesc = "Configure API endpoint, custom head headers, post request template, and test connection."
     override val filterPreferences = "Filters & Constraints"
     override val filterPreferencesDesc = "Define schedule boundaries, random delay, and prevent message spam."
     override val simulationHeader = "WhatsApp Reply Simulator (Testing & Diagnostics)"
-    override val simulationBody = "Simulate custom keyword matching or Gemini generation directly without sending real notifications."
+    override val simulationBody = "Simulate custom keyword matching or API request generation directly without sending real notifications."
     override val simSenderLabel = "Contact Sender Name"
     override val simMessageLabel = "Incoming Message Body"
     override val simulateBtn = "Start Simulation"
@@ -300,14 +350,33 @@ object EnStrings : LocStrings() {
     override val filterGlobal = "Global"
     override val noRepliesForSelectedContact = "No custom replies configured for this contact yet. Click '+' to add one."
     
-    override val geminiEngineHeader = "Gemini AI Engine Configuration"
-    override val geminiEngineDesc = "Modify settings for connecting to Google Gemini AI models."
-    override val apiKeyLabel = "Gemini API Key"
+    override val geminiEngineHeader = "Custom API Configuration"
+    override val geminiEngineDesc = "Configure connection parameters for your custom API Endpoint to generate automatic replies dynamically."
+    override val apiKeyLabel = "API Endpoint URL"
     override val testConnectionBtn = "Test Connection"
-    override val testingConnection = "Connecting to Gemini to verify connectivity..."
-    override val selectModel = "Select Gemini Model"
-    override val customSystemPrompt = "System Prompt"
-    override val customSystemPromptDesc = "Instruct the AI helper how to adapt, behave, sound, and construct its replies."
+    override val testingConnection = "Sending test request to API to verify connection..."
+    override val selectModel = "HTTP Request Method"
+    override val customSystemPrompt = "Request JSON Payload Structure"
+    override val customSystemPromptDesc = "Provide custom body payloads where {sender} is replaced by the sender's name and {message} is replaced by the raw incoming text."
+
+    // New additions (English)
+    override val apiUrlLabel = "Base API Endpoint URL"
+    override val apiMethodLabel = "Request Method"
+    override val apiHeadersLabel = "Request Headers (Key: Value per line)"
+    override val apiBodyTemplateLabel = "POST Payload Body Template"
+    override val apiResponsePathLabel = "JSON Path to Reply Text (e.g., reply)"
+    override val callReplyHeader = "Call Auto-Responder"
+    override val callReplyDesc = "Automatically reply with custom message/SMS to voice or video calls and adjust audio."
+    override val callReplyEnabledLabel = "Enable Call Auto-Reply"
+    override val callReplyTextLabel = "Call Auto-Reply Message Text"
+    override val audioSettingsHeader = "System Volumes and Vibrate"
+    override val audioSettingsDesc = "Pre-configure target system volume sliders (Media & Ringer streams) when call responder gets active."
+    override val ringerVolumeLabel = "Ringer Stream Volume (%)"
+    override val mediaVolumeLabel = "Media Stream Volume (%)"
+    override val ringerModeLabel = "Ringer Mode Setting"
+    override val ringerModeSilent = "Silent Mode"
+    override val ringerModeVibrate = "Vibrate Only"
+    override val ringerModeNormal = "Normal Sound Profile"
     
     override val logHeader = "Replying Histograms"
     override val logDesc = "Follow and examine incoming messages, generated replies, and transmission logs."
@@ -332,10 +401,16 @@ object EnStrings : LocStrings() {
     override val changeLanguageSettingDesc = "Change your default language preference for the entire app interface."
     override val appLanguageLabel = "App Display Language"
     
-    override val modeCustom = "Custom Replies Only"
+    // Quiet Mode (Distraction-Free) Strings (English)
+    override val quietModeHeader = "Quiet Focus Mode (Distraction-Free)"
+    override val quietModeDesc = "Control notification behaviors so you can continue using your phone to secure deals and complete work without any visual screen interruptions."
+    override val dismissNotificationsSetting = "Auto-Dismiss Chat & Call Notifications"
+    override val dismissNotificationsSettingDesc = "Instantly clear WhatsApp popups and overlay banners after replying to them. Focus on phone use while keeping full activity stored in Logs."
+    
+    override val modeCustom = "Keyword Matching Rules"
     override val modeCustomDesc = "Relies entirely on matching keywords."
-    override val modeGemini = "Gemini AI Engine"
-    override val modeGeminiDesc = "Generate smart, custom replies using Gemini Flash."
-    override val modeHybrid = "Hybrid Responder Mode"
-    override val modeHybridDesc = "Checks keywords first. Invokes Gemini as fallback."
+    override val modeGemini = "Custom Web API Calling"
+    override val modeGeminiDesc = "Query your own custom web server Endpoint (API) to fetch replies."
+    override val modeHybrid = "Hybrid Mode (Priority Rules)"
+    override val modeHybridDesc = "Checks local keyword rules first. If unmatched, queries your API Endpoint."
 }

@@ -20,10 +20,19 @@ data class AppSettings(
     val workingHoursStart: String,
     val workingHoursEnd: String,
     val isServiceEnabled: Boolean,
-    val replyMode: String, // "CUSTOM", "GEMINI", "HYBRID"
-    val geminiModel: String,
-    val systemPrompt: String,
-    val appLanguage: String
+    val replyMode: String, // "CUSTOM", "API", "HYBRID"
+    val apiUrl: String,
+    val apiMethod: String,
+    val apiHeaders: String,
+    val apiBodyTemplate: String,
+    val apiResponsePath: String,
+    val appLanguage: String,
+    val callReplyEnabled: Boolean,
+    val callReplyText: String,
+    val ringerVolume: Int,
+    val mediaVolume: Int,
+    val ringerMode: Int,
+    val dismissNotificationsEnabled: Boolean
 )
 
 class SettingsManager(private val context: Context) {
@@ -40,9 +49,18 @@ class SettingsManager(private val context: Context) {
         val KEY_WORKING_HOURS_END = stringPreferencesKey("working_hours_end")
         val KEY_SERVICE_ENABLED = booleanPreferencesKey("service_enabled")
         val KEY_REPLY_MODE = stringPreferencesKey("reply_mode")
-        val KEY_GEMINI_MODEL = stringPreferencesKey("gemini_model")
-        val KEY_GEMINI_SYSTEM_PROMPT = stringPreferencesKey("gemini_system_prompt")
+        val KEY_API_URL = stringPreferencesKey("api_url")
+        val KEY_API_METHOD = stringPreferencesKey("api_method")
+        val KEY_API_HEADERS = stringPreferencesKey("api_headers")
+        val KEY_API_BODY_TEMPLATE = stringPreferencesKey("api_body_template")
+        val KEY_API_RESPONSE_PATH = stringPreferencesKey("api_response_path")
         val KEY_APP_LANGUAGE = stringPreferencesKey("app_language")
+        val KEY_CALL_REPLY_ENABLED = booleanPreferencesKey("call_reply_enabled")
+        val KEY_CALL_REPLY_TEXT = stringPreferencesKey("call_reply_text")
+        val KEY_RINGER_VOLUME = intPreferencesKey("ringer_volume")
+        val KEY_MEDIA_VOLUME = intPreferencesKey("media_volume")
+        val KEY_RINGER_MODE = intPreferencesKey("ringer_mode")
+        val KEY_DISMISS_NOTIFICATIONS_ENABLED = booleanPreferencesKey("dismiss_notifications_enabled")
     }
 
     val settingsFlow: Flow<AppSettings> = context.dataStore.data.map { preferences ->
@@ -58,9 +76,18 @@ class SettingsManager(private val context: Context) {
             workingHoursEnd = preferences[KEY_WORKING_HOURS_END] ?: "18:00",
             isServiceEnabled = preferences[KEY_SERVICE_ENABLED] ?: true,
             replyMode = preferences[KEY_REPLY_MODE] ?: "CUSTOM",
-            geminiModel = preferences[KEY_GEMINI_MODEL] ?: "gemini-2.5-flash",
-            systemPrompt = preferences[KEY_GEMINI_SYSTEM_PROMPT] ?: "You are an automated WhatsApp helper. Draft a short, concise, polite, and helpful answer.",
-            appLanguage = preferences[KEY_APP_LANGUAGE] ?: "ar" // Default to Arabic as requested by user's prompt language
+            apiUrl = preferences[KEY_API_URL] ?: "https://api.example.com/reply",
+            apiMethod = preferences[KEY_API_METHOD] ?: "POST",
+            apiHeaders = preferences[KEY_API_HEADERS] ?: "Content-Type: application/json\nAuthorization: Bearer your-token-here",
+            apiBodyTemplate = preferences[KEY_API_BODY_TEMPLATE] ?: "{\n  \"sender\": \"{sender}\",\n  \"message\": \"{message}\"\n}",
+            apiResponsePath = preferences[KEY_API_RESPONSE_PATH] ?: "reply",
+            appLanguage = preferences[KEY_APP_LANGUAGE] ?: "ar",
+            callReplyEnabled = preferences[KEY_CALL_REPLY_ENABLED] ?: false,
+            callReplyText = preferences[KEY_CALL_REPLY_TEXT] ?: "مرحباً، أنا غير متاح حالياً بالاتصال. سأتواصل معك فور تفرغي.",
+            ringerVolume = preferences[KEY_RINGER_VOLUME] ?: 70,
+            mediaVolume = preferences[KEY_MEDIA_VOLUME] ?: 60,
+            ringerMode = preferences[KEY_RINGER_MODE] ?: 2, // Normal (0 = Silent, 1 = Vibrate, 2 = Normal)
+            dismissNotificationsEnabled = preferences[KEY_DISMISS_NOTIFICATIONS_ENABLED] ?: false
         )
     }
 
@@ -75,9 +102,18 @@ class SettingsManager(private val context: Context) {
     suspend fun updateWorkingHoursEnd(value: String) = set(KEY_WORKING_HOURS_END, value)
     suspend fun updateServiceEnabled(value: Boolean) = set(KEY_SERVICE_ENABLED, value)
     suspend fun updateReplyMode(value: String) = set(KEY_REPLY_MODE, value)
-    suspend fun updateGeminiModel(value: String) = set(KEY_GEMINI_MODEL, value)
-    suspend fun updateSystemPrompt(value: String) = set(KEY_GEMINI_SYSTEM_PROMPT, value)
+    suspend fun updateApiUrl(value: String) = set(KEY_API_URL, value)
+    suspend fun updateApiMethod(value: String) = set(KEY_API_METHOD, value)
+    suspend fun updateApiHeaders(value: String) = set(KEY_API_HEADERS, value)
+    suspend fun updateApiBodyTemplate(value: String) = set(KEY_API_BODY_TEMPLATE, value)
+    suspend fun updateApiResponsePath(value: String) = set(KEY_API_RESPONSE_PATH, value)
     suspend fun updateAppLanguage(value: String) = set(KEY_APP_LANGUAGE, value)
+    suspend fun updateCallReplyEnabled(value: Boolean) = set(KEY_CALL_REPLY_ENABLED, value)
+    suspend fun updateCallReplyText(value: String) = set(KEY_CALL_REPLY_TEXT, value)
+    suspend fun updateRingerVolume(value: Int) = set(KEY_RINGER_VOLUME, value)
+    suspend fun updateMediaVolume(value: Int) = set(KEY_MEDIA_VOLUME, value)
+    suspend fun updateRingerMode(value: Int) = set(KEY_RINGER_MODE, value)
+    suspend fun updateDismissNotificationsEnabled(value: Boolean) = set(KEY_DISMISS_NOTIFICATIONS_ENABLED, value)
 
     private suspend fun <T> set(key: Preferences.Key<T>, value: T) {
         context.dataStore.edit { preferences ->

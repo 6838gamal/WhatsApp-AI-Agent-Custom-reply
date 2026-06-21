@@ -1,8 +1,7 @@
 package gamalsolutions.whatscustomreply.di
 
 import androidx.room.Room
-import gamalsolutions.whatscustomreply.data.api.GeminiApiService
-import gamalsolutions.whatscustomreply.data.api.GeminiRepository
+import gamalsolutions.whatscustomreply.data.api.CustomApiRepository
 import gamalsolutions.whatscustomreply.data.database.AppDatabase
 import gamalsolutions.whatscustomreply.data.datastore.SettingsManager
 import gamalsolutions.whatscustomreply.data.repository.LogsRepository
@@ -13,7 +12,6 @@ import okhttp3.OkHttpClient
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
-import retrofit2.Retrofit
 import java.util.concurrent.TimeUnit
 
 val appModule = module {
@@ -38,25 +36,17 @@ val appModule = module {
     single { SettingsManager(androidContext()) }
     single { EncryptedPrefsManager(androidContext()) }
 
-    // Retrofit & Network Client
+    // General OkHttpClient for Custom API Requests
     single {
         OkHttpClient.Builder()
-            .connectTimeout(60, TimeUnit.SECONDS)
-            .readTimeout(60, TimeUnit.SECONDS)
-            .writeTimeout(60, TimeUnit.SECONDS)
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
             .build()
     }
 
-    single {
-        Retrofit.Builder()
-            .baseUrl("https://generativelanguage.googleapis.com/")
-            .client(get())
-            .build()
-    }
-
-    single { get<Retrofit>().create(GeminiApiService::class.java) }
-
-    single { GeminiRepository(get(), get()) }
+    // Repository for Custom API Client
+    single { CustomApiRepository(get()) }
 
     // ViewModel
     viewModel { MainViewModel(get(), get(), get(), get(), get()) }

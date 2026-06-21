@@ -87,7 +87,7 @@ fun SettingsScreen(
 
                 val modes = listOf(
                     Triple("CUSTOM", labels.modeCustom, labels.modeCustomDesc),
-                    Triple("GEMINI", labels.modeGemini, labels.modeGeminiDesc),
+                    Triple("API", labels.modeGemini, labels.modeGeminiDesc),
                     Triple("HYBRID", labels.modeHybrid, labels.modeHybridDesc)
                 )
 
@@ -99,7 +99,7 @@ fun SettingsScreen(
                             .background(
                                 if (settings.replyMode == modeKey) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
                                 else Color.Transparent
-                             )
+                            )
                             .clickable { viewModel.updateReplyMode(modeKey) }
                             .padding(10.dp)
                             .testTag("reply_mode_option_$modeKey"),
@@ -197,7 +197,242 @@ fun SettingsScreen(
             }
         }
 
-        // 3. Chat Filtering Constraints
+        // 3. Call Responder & Voice Config Cards (REQUESTED BY USER)
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.PhoneCallback,
+                            contentDescription = "Calls Auto responder icon",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(labels.callReplyHeader, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    }
+                    Switch(
+                        checked = settings.callReplyEnabled,
+                        onCheckedChange = { viewModel.updateCallReplyEnabled(it) },
+                        modifier = Modifier.testTag("call_reply_enabled_switch")
+                    )
+                }
+
+                Text(
+                    text = labels.callReplyDesc,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                AnimatedVisibility(
+                    visible = settings.callReplyEnabled,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = labels.callReplyTextLabel,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.sp
+                        )
+                        TextField(
+                            value = settings.callReplyText,
+                            onValueChange = { viewModel.updateCallReplyText(it) },
+                            modifier = Modifier.fillMaxWidth().testTag("call_reply_text_field"),
+                            minLines = 2,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
+        // 4. System sound levels and profiles config
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.VolumeUp,
+                        contentDescription = "Sound config profile icon",
+                        tint = MaterialTheme.colorScheme.secondary
+                    )
+                    Text(labels.audioSettingsHeader, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                }
+
+                Text(
+                    text = labels.audioSettingsDesc,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                // Ringer profile mode selector (Normal, Vibrate, Silent)
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(text = labels.ringerModeLabel, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        val profiles = listOf(
+                            Triple(0, Icons.Filled.VolumeOff, labels.ringerModeSilent),
+                            Triple(1, Icons.Filled.Vibration, labels.ringerModeVibrate),
+                            Triple(2, Icons.Filled.VolumeUp, labels.ringerModeNormal)
+                        )
+                        profiles.forEach { (mode, icon, text) ->
+                            val isSelected = settings.ringerMode == mode
+                            IconButton(
+                                onClick = { viewModel.updateRingerMode(mode) },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(
+                                        if (isSelected) MaterialTheme.colorScheme.primaryContainer
+                                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                    )
+                                    .padding(8.dp)
+                                    .testTag("ringer_mode_option_$mode")
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = text,
+                                        tint = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = text,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Volume Controls (Ringer & Media) sliders
+                AnimatedVisibility(
+                    visible = settings.ringerMode == 2,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
+                    Column {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(labels.ringerVolumeLabel, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                            Text("${settings.ringerVolume}%", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
+                        }
+                        Slider(
+                            value = settings.ringerVolume.toFloat(),
+                            onValueChange = { viewModel.updateRingerVolume(it.toInt()) },
+                            valueRange = 0f..100f,
+                            modifier = Modifier.testTag("ringer_volume_slider")
+                        )
+                    }
+                }
+
+                Column {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(labels.mediaVolumeLabel, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                        Text("${settings.mediaVolume}%", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.secondary)
+                    }
+                    Slider(
+                        value = settings.mediaVolume.toFloat(),
+                        onValueChange = { viewModel.updateMediaVolume(it.toInt()) },
+                        valueRange = 0f..100f,
+                        modifier = Modifier.testTag("media_volume_slider")
+                    )
+                }
+            }
+        }
+
+        // Quiet Focus Mode - Uninterrupted Screentime (Requested by User)
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.DoNotDisturbOn,
+                        contentDescription = "Quiet Focus icon",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                    Text(labels.quietModeHeader, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                }
+
+                Text(
+                    text = labels.quietModeDesc,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(labels.dismissNotificationsSetting, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                        Text(labels.dismissNotificationsSettingDesc, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(
+                        checked = settings.dismissNotificationsEnabled,
+                        onCheckedChange = { viewModel.updateDismissNotificationsEnabled(it) },
+                        modifier = Modifier.testTag("dismiss_notifications_switch")
+                    )
+                }
+            }
+        }
+
+        // 5. Chat Filtering Constraints
         Card(
             shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(
@@ -274,7 +509,7 @@ fun SettingsScreen(
             }
         }
 
-        // 4. Simulated Response Delay Config
+        // 6. Simulated Response Delay Config
         Card(
             shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(
@@ -343,7 +578,7 @@ fun SettingsScreen(
             }
         }
 
-        // 5. Working Hours Schedule
+        // 7. Working Hours Schedule
         Card(
             shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(

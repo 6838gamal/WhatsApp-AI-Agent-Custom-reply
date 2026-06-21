@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.outlined.Analytics
 import androidx.compose.material3.*
@@ -43,10 +44,10 @@ fun StatisticsScreen(
 
     // Calculate details from logs
     val customRepliesCount = remember(logs) {
-        logs.count { it.mode.contains("CUSTOM", ignoreCase = true) && it.isSuccess }
+        logs.count { it.mode.contains("CUSTOM", ignoreCase = true) && !it.mode.contains("API") && it.isSuccess }
     }
     val geminiRepliesCount = remember(logs) {
-        logs.count { it.mode.contains("GEMINI", ignoreCase = true) && it.isSuccess }
+        logs.count { (it.mode.contains("GEMINI", ignoreCase = true) || it.mode.contains("API", ignoreCase = true) || it.mode.contains("CALL")) && it.isSuccess }
     }
     val skippedCount = remember(logs) {
         logs.count { !it.isSuccess }
@@ -171,7 +172,7 @@ fun StatisticsScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Filled.Code, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(16.dp))
                         Text("${labels.modeGemini}: $geminiRepliesCount", fontSize = 13.sp)
                     }
                 }
@@ -208,9 +209,9 @@ fun StatisticsScreen(
 
                 Text(
                     text = if (settings.appLanguage == "en") {
-                        "A higher custom rules count implies matches with preconfigured keywords. Gemini AI handles flexible conversational topics."
+                        "A higher custom rules count implies matches with preconfigured keywords. Your custom REST API resolves active open-ended client message topics."
                     } else {
-                        "يشير الارتفاع في عدد القواعد والردود المخصصة لتفعيل الكلمات المفتاحية اليدوية، بينما يتولى جيميني الرد على العبارات الحرة والدردشات العامة المفتوحة."
+                        "يشير الارتفاع في عدد القواعد والردود المخصصة لتفعيل الكلمات المفتاحية اليدوية، بينما تتولى واجهة برمجة المعطيات (API) الرد الذكي المفتوح لتشغيل قواعد بياناتك الخارجية."
                     },
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
