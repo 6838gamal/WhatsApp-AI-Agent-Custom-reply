@@ -264,6 +264,79 @@ fun SettingsScreen(
             }
         }
 
+        // 3.5 Interactive Voice Calling Assistant (User interaction vocal dialogue)
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.RecordVoiceOver,
+                            contentDescription = "Interactive Voice icon",
+                            tint = MaterialTheme.colorScheme.secondary
+                        )
+                        Text(labels.interactiveVoiceSectionTitle, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    }
+                    Switch(
+                        checked = settings.interactiveVoiceCallEnabled,
+                        onCheckedChange = { viewModel.updateInteractiveVoiceCallEnabled(it) },
+                        modifier = Modifier.testTag("interactive_voice_switch")
+                    )
+                }
+
+                Text(
+                    text = labels.interactiveVoiceSectionDesc,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                AnimatedVisibility(
+                    visible = settings.interactiveVoiceCallEnabled,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = labels.interactiveVoicePromptLabel,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 13.sp
+                        )
+                        TextField(
+                            value = settings.interactiveVoiceCallPrompt,
+                            onValueChange = { viewModel.updateInteractiveVoiceCallPrompt(it) },
+                            modifier = Modifier.fillMaxWidth().testTag("interactive_voice_prompt_field"),
+                            minLines = 3,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                            )
+                        )
+                        Text(
+                            text = labels.interactiveVoicePromptDesc,
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+
         // 4. System sound levels and profiles config
         Card(
             shape = RoundedCornerShape(20.dp),

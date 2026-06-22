@@ -35,7 +35,9 @@ data class AppSettings(
     val dismissNotificationsEnabled: Boolean,
     val voiceReplyEnabled: Boolean,
     val primaryAccountPhone: String,
-    val additionalAccountPhones: String
+    val additionalAccountPhones: String,
+    val interactiveVoiceCallEnabled: Boolean,
+    val interactiveVoiceCallPrompt: String
 )
 
 class SettingsManager(private val context: Context) {
@@ -67,6 +69,8 @@ class SettingsManager(private val context: Context) {
         val KEY_VOICE_REPLY_ENABLED = booleanPreferencesKey("voice_reply_enabled")
         val KEY_PRIMARY_ACCOUNT_PHONE = stringPreferencesKey("primary_account_phone")
         val KEY_ADDITIONAL_ACCOUNT_PHONES = stringPreferencesKey("additional_account_phones")
+        val KEY_INTERACTIVE_VOICE_CALL_ENABLED = booleanPreferencesKey("interactive_voice_call_enabled")
+        val KEY_INTERACTIVE_VOICE_CALL_PROMPT = stringPreferencesKey("interactive_voice_call_prompt")
     }
 
     val settingsFlow: Flow<AppSettings> = context.dataStore.data.map { preferences ->
@@ -96,7 +100,9 @@ class SettingsManager(private val context: Context) {
             dismissNotificationsEnabled = preferences[KEY_DISMISS_NOTIFICATIONS_ENABLED] ?: false,
             voiceReplyEnabled = preferences[KEY_VOICE_REPLY_ENABLED] ?: false,
             primaryAccountPhone = preferences[KEY_PRIMARY_ACCOUNT_PHONE] ?: "",
-            additionalAccountPhones = preferences[KEY_ADDITIONAL_ACCOUNT_PHONES] ?: ""
+            additionalAccountPhones = preferences[KEY_ADDITIONAL_ACCOUNT_PHONES] ?: "",
+            interactiveVoiceCallEnabled = preferences[KEY_INTERACTIVE_VOICE_CALL_ENABLED] ?: false,
+            interactiveVoiceCallPrompt = preferences[KEY_INTERACTIVE_VOICE_CALL_PROMPT] ?: "مرحباً، أنا المساعد الذكي لصاحب هذا الهاتف. إنه غير متاح حالياً للرد على المكالمات، وهو يثق بي للرد عليك والتجاوب معك بالكامل ومساعدتك وتسجيل طلبك. تفضل، كيف يمكنني خدمتك ومساعدتك اليوم؟"
         )
     }
 
@@ -126,6 +132,8 @@ class SettingsManager(private val context: Context) {
     suspend fun updateVoiceReplyEnabled(value: Boolean) = set(KEY_VOICE_REPLY_ENABLED, value)
     suspend fun updatePrimaryAccountPhone(value: String) = set(KEY_PRIMARY_ACCOUNT_PHONE, value)
     suspend fun updateAdditionalAccountPhones(value: String) = set(KEY_ADDITIONAL_ACCOUNT_PHONES, value)
+    suspend fun updateInteractiveVoiceCallEnabled(value: Boolean) = set(KEY_INTERACTIVE_VOICE_CALL_ENABLED, value)
+    suspend fun updateInteractiveVoiceCallPrompt(value: String) = set(KEY_INTERACTIVE_VOICE_CALL_PROMPT, value)
 
     private suspend fun <T> set(key: Preferences.Key<T>, value: T) {
         context.dataStore.edit { preferences ->

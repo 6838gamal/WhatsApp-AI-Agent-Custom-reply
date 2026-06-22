@@ -71,7 +71,9 @@ class MainViewModel(
                 dismissNotificationsEnabled = false,
                 voiceReplyEnabled = false,
                 primaryAccountPhone = "",
-                additionalAccountPhones = ""
+                additionalAccountPhones = "",
+                interactiveVoiceCallEnabled = false,
+                interactiveVoiceCallPrompt = "مرحباً، أنا المساعد الذكي لصاحب هذا الهاتف. إنه غير متاح حالياً للرد على المكالمات، وهو يثق بي للرد عليك والتجاوب معك بالكامل ومساعدتك وتسجيل طلبك. تفضل، كيف يمكنني خدمتك ومساعدتك اليوم؟"
             )
         )
 
@@ -314,6 +316,18 @@ class MainViewModel(
     fun updateAdditionalAccountPhones(value: String) {
         launchSafe("تحديث الحسابات المتعددة الإضافية", "updating additional multi-account phones list") {
             settingsManager.updateAdditionalAccountPhones(value)
+        }
+    }
+
+    fun updateInteractiveVoiceCallEnabled(value: Boolean) {
+        launchSafe("تحديث المجيب التفاعلي للمكالمات", "updating interactive voice call enabled") {
+            settingsManager.updateInteractiveVoiceCallEnabled(value)
+        }
+    }
+
+    fun updateInteractiveVoiceCallPrompt(value: String) {
+        launchSafe("تحديث موجه المجيب التفاعلي", "updating interactive voice call prompt") {
+            settingsManager.updateInteractiveVoiceCallPrompt(value)
         }
     }
 }

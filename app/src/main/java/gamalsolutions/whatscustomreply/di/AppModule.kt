@@ -51,6 +51,9 @@ val appModule = module {
     // Speech synthesis helper
     single { gamalsolutions.whatscustomreply.service.SpeechHelper(androidContext()) }
 
+    // Interactive voice calling dialogue helper
+    single { gamalsolutions.whatscustomreply.service.InteractiveVoiceHelper(androidContext()) }
+
     // ViewModel
     viewModel { MainViewModel(get(), get(), get(), get(), get()) }
 }

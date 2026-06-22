@@ -17,6 +17,7 @@ import gamalsolutions.whatscustomreply.data.datastore.SettingsManager
 import gamalsolutions.whatscustomreply.data.repository.LogsRepository
 import gamalsolutions.whatscustomreply.data.repository.RepliesRepository
 import kotlinx.coroutines.CoroutineScope
+import gamalsolutions.whatscustomreply.service.InteractiveVoiceHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
@@ -29,6 +30,7 @@ class PhoneCallReceiver : BroadcastReceiver(), KoinComponent {
     private val customApiRepository: CustomApiRepository by inject()
     private val repliesRepository: RepliesRepository by inject()
     private val speechHelper: SpeechHelper by inject()
+    private val interactiveVoiceHelper: InteractiveVoiceHelper by inject()
 
     companion object {
         private const val TAG = "PhoneCallReceiver"
@@ -95,9 +97,14 @@ class PhoneCallReceiver : BroadcastReceiver(), KoinComponent {
 
                 } else if (state == TelephonyManager.EXTRA_STATE_OFFHOOK) {
                     isWasRinging = false
+                    if (settings.interactiveVoiceCallEnabled && finalNumber.isNotBlank()) {
+                        Log.d(TAG, "EXTRA_STATE_OFFHOOK: Starting Interactive Voice Assistant Dialogue Flow.")
+                        interactiveVoiceHelper.startDialogue(settings, finalNumber)
+                    }
                 } else if (state == TelephonyManager.EXTRA_STATE_IDLE) {
                     val missedTriggered = isWasRinging && finalNumber.isNotBlank()
                     isWasRinging = false
+                    interactiveVoiceHelper.shutdown()
 
                     try {
                         originalRingerMode?.let { mode ->

@@ -52,6 +52,18 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Request crucial permissions on launch for optimal capabilities
+        val requestPermissionLauncher = registerForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+        ) { }
+        requestPermissionLauncher.launch(
+            arrayOf(
+                android.Manifest.permission.RECORD_AUDIO,
+                android.Manifest.permission.READ_PHONE_STATE
+            )
+        )
+
         setContent {
             MyApplicationTheme {
                 MainAppScreen()

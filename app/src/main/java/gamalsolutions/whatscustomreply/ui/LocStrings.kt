@@ -136,6 +136,14 @@ sealed class LocStrings {
     abstract val voiceReplyAnnounceSetting: String
     abstract val voiceReplyAnnounceSettingDesc: String
 
+    // Interactive Voice Dialogue Settings
+    abstract val interactiveVoiceSectionTitle: String
+    abstract val interactiveVoiceSectionDesc: String
+    abstract val interactiveVoiceEnabledLabel: String
+    abstract val interactiveVoiceEnabledDesc: String
+    abstract val interactiveVoicePromptLabel: String
+    abstract val interactiveVoicePromptDesc: String
+
     // New Account / Multi Account & Call Rule Settings
     abstract val ruleTriggerTypeLabel: String
     abstract val triggerChat: String
@@ -290,6 +298,14 @@ object ArStrings : LocStrings() {
     override val voiceReplyAnnounceSetting = "الردود الصوتية وقراءة التقارير تلقائياً"
     override val voiceReplyAnnounceSettingDesc = "استماع مباشر لنصوص الردود المبعوثة تلقائياً وكذا التنبيهات الصوتية (TTS) دون الحاجة لفتح شاشة الهاتف أو لمسه."
 
+    // Interactive Voice Dialogue Settings (Arabic)
+    override val interactiveVoiceSectionTitle = "المجيب الصوتي التفاعلي الذكي للمكالمات"
+    override val interactiveVoiceSectionDesc = "تفعيل نظام حوار مسموع تفاعلي (أخذ ورد) بالكامل مع المتصل عندما يكون الخط مفتوحاً (نشطاً). يتحدث النظام ويستمع بالذكاء الاصطناعي."
+    override val interactiveVoiceEnabledLabel = "تمكين الحوار الصوتي المباشر"
+    override val interactiveVoiceEnabledDesc = "عند استقبال مكالمة هاتفية والرد عليها وفتح الخط، سيقوم النظام تلقائياً بفتح المكبر الصوتي (السبيكر) والتحدث مع المتصل والاستماع لردوده والتجاوب معه باستمرار."
+    override val interactiveVoicePromptLabel = "تعليمات المجيب والسيناريو الصوتي (Prompt)"
+    override val interactiveVoicePromptDesc = "الموجه الإرشادي الذي يرسم شخصية المساعد الذكي وسيناريو المحادثة الصوتية والأهداف التي يجب تحقيقها أثناء الجواب."
+
     // New Account / Multi Account & Call Rule Settings (Arabic)
     override val ruleTriggerTypeLabel = "نوع تشغيل القاعدة"
     override val triggerChat = "رسالة نصية واردة (دردشة)"
@@ -442,6 +458,14 @@ object EnStrings : LocStrings() {
     override val dismissNotificationsSettingDesc = "Instantly clear WhatsApp popups and overlay banners after replying to them. Focus on phone use while keeping full activity stored in Logs."
     override val voiceReplyAnnounceSetting = "Text-to-Speech Spoken Announcements"
     override val voiceReplyAnnounceSettingDesc = "Listen directly to real-time audio announcements of incoming events and sent automated replies, keeping your focus 100% off-screen."
+
+    // Interactive Voice Dialogue Settings (English)
+    override val interactiveVoiceSectionTitle = "Interactive Voice Call Assistant"
+    override val interactiveVoiceSectionDesc = "Enable a fully voiced conversational agent (back-and-forth) that speaks and listens when standard phone calls are active (off-hook)."
+    override val interactiveVoiceEnabledLabel = "Enable Live Voice Dialogue"
+    override val interactiveVoiceEnabledDesc = "When standard phone calls are answered or connected, the app automatically turns on the speakerphone, speaks to the caller, captures their speech, and converses with them."
+    override val interactiveVoicePromptLabel = "Voice Assistant Custom System Prompt"
+    override val interactiveVoicePromptDesc = "The guiding instructions that define the vocal assistant's character, behaviors, goals, and customized speaking rules."
 
     // New Account / Multi Account & Call Rule Settings (English)
     override val ruleTriggerTypeLabel = "Rule Trigger Type"
