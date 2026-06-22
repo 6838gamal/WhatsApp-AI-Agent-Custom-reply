@@ -83,6 +83,17 @@ class InteractiveVoiceHelper(private val context: Context) : KoinComponent, Text
                 tts?.setLanguage(Locale.US)
             }
             
+            try {
+                val audioAttributes = android.media.AudioAttributes.Builder()
+                    .setUsage(android.media.AudioAttributes.USAGE_VOICE_COMMUNICATION)
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH)
+                    .build()
+                tts?.setAudioAttributes(audioAttributes)
+                Log.d(TAG, "Successfully configured USAGE_VOICE_COMMUNICATION on TextToSpeech")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error setting AudioAttributes on TTS: ${e.message}")
+            }
+
             isTtsReady = true
             
             tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
@@ -123,7 +134,11 @@ class InteractiveVoiceHelper(private val context: Context) : KoinComponent, Text
     private fun speakText(text: String) {
         if (!isTtsReady || tts == null) return
         val utteranceId = "InteractiveVoice_" + System.currentTimeMillis()
-        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, utteranceId)
+        val params = Bundle().apply {
+            putInt(TextToSpeech.Engine.KEY_PARAM_STREAM, AudioManager.STREAM_VOICE_CALL)
+        }
+        Log.d(TAG, "Speaking text: $text with stream STREAM_VOICE_CALL")
+        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, params, utteranceId)
     }
 
     private fun startListeningLoop() {

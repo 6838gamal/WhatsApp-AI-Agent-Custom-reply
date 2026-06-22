@@ -3,7 +3,10 @@ package gamalsolutions.whatscustomreply.ui.screens
 import androidx.compose.animation.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -17,6 +20,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -136,6 +140,137 @@ fun RepliesScreen(
                     unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
                 )
             )
+
+            // Direct Interactive Voice Assistant Quick Settings Card (Avoids fragmentation / tish-shatut)
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f)
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                var isExpanded by remember { mutableStateOf(false) }
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { isExpanded = !isExpanded }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.RecordVoiceOver,
+                                contentDescription = "Voice Assistant Icon",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Column {
+                                Text(
+                                    text = if (settings.appLanguage == "en") "Interactive Voice Call Assistant" else "المجيب الصوتي التفاعلي للمكالمات",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Text(
+                                    text = if (settings.interactiveVoiceCallEnabled) {
+                                        if (settings.appLanguage == "en") "Status: Active (Answering Calls)" else "الحالة: نشط (المجيب الصوتي يعمل عند ردك على المكالمة)"
+                                    } else {
+                                        if (settings.appLanguage == "en") "Status: Off" else "الحالة: معطّل (انقر للتنشيط)"
+                                    },
+                                    fontSize = 11.sp,
+                                    color = if (settings.interactiveVoiceCallEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Switch(
+                                checked = settings.interactiveVoiceCallEnabled,
+                                onCheckedChange = { viewModel.updateInteractiveVoiceCallEnabled(it) },
+                                modifier = Modifier.scale(0.85f).testTag("quick_voice_switch")
+                            )
+                            IconButton(onClick = { isExpanded = !isExpanded }) {
+                                Icon(
+                                    imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                    contentDescription = "Expand Config"
+                                )
+                            }
+                        }
+                    }
+
+                    AnimatedVisibility(
+                        visible = isExpanded,
+                        enter = fadeIn() + expandVertically(),
+                        exit = fadeOut() + shrinkVertically()
+                    ) {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                        ) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.1f))
+                            
+                            Text(
+                                text = if (settings.appLanguage == "en") "Starting Welcome Greeting prompt:" else "النص الترحيبي التلقائي للبدء (عند الرد):",
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            
+                            OutlinedTextField(
+                                value = settings.interactiveVoiceCallPrompt,
+                                onValueChange = { viewModel.updateInteractiveVoiceCallPrompt(it) },
+                                modifier = Modifier.fillMaxWidth().testTag("quick_voice_prompt_field"),
+                                minLines = 3,
+                                shape = RoundedCornerShape(12.dp),
+                                textStyle = LocalTextStyle.current.copy(fontSize = 13.sp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                                )
+                            )
+                            
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.05f))
+                                    .padding(8.dp)
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.Top
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Info,
+                                        contentDescription = "info",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp).padding(top = 1.dp)
+                                    )
+                                    Text(
+                                        text = if (settings.appLanguage == "en") {
+                                            "How it works: When a call is answered, the assistant speaks this greeting, then listens to the caller and matches their speech against your active rules listed below!"
+                                        } else {
+                                            "آلية العمل: عند فتح الخط والرد، ينطق المجيب بهذا النص الترحيبي، ثم يستمع للمتصل ويطابق كلامه مع كلماتك المفتاحية والقواعد المحددة في الأسفل للرد عليه بنص أو رسالة صوتية تلقائياً!"
+                                        },
+                                        fontSize = 11.sp,
+                                        lineHeight = 16.sp,
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
             // 2. Horizontal Contact filter pills Row
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -309,7 +444,7 @@ fun RepliesScreen(
                                 containerColor = if (reply.isEnabled) MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
                                 else MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp).copy(alpha = 0.5f)
                             ),
-                            shape = RoundedCornerShape(16.dp),
+                            shape = RoundedCornerShape(18.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .combinedClickable(
@@ -318,157 +453,217 @@ fun RepliesScreen(
                                 )
                                 .testTag("reply_card_${reply.id}")
                         ) {
-                            Row(
+                            Column(
                                 modifier = Modifier
                                     .padding(16.dp)
                                     .fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                Column(
-                                    modifier = Modifier.weight(1f),
-                                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                                // 1. TOP ROW: Trigger Icon, Keyword Display, and Enable Switch
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    LazyRow(
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    Row(
                                         verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp)
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        modifier = Modifier.weight(1f)
                                     ) {
-                                        // Keyword Tag Display
-                                        item {
-                                            Box(
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(6.dp))
-                                                    .background(
-                                                        if (reply.isEnabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                                                        else MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
-                                                    )
-                                                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                                            ) {
-                                                Text(
-                                                    text = "${labels.containsTag}: ${reply.keyword}",
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 10.sp,
-                                                    color = if (reply.isEnabled) MaterialTheme.colorScheme.primary
-                                                    else MaterialTheme.colorScheme.outline
-                                                )
-                                            }
+                                        // Specific trigger icon
+                                        val triggerIcon = when (reply.triggerType) {
+                                            "CALL_ACTIVE" -> Icons.Default.PhoneInTalk
+                                            "CALL_MISSED" -> Icons.Default.PhoneCallback
+                                            else -> Icons.Default.ChatBubble
+                                        }
+                                        val triggerColor = when (reply.triggerType) {
+                                            "CALL_ACTIVE" -> MaterialTheme.colorScheme.tertiary
+                                            "CALL_MISSED" -> MaterialTheme.colorScheme.error
+                                            else -> MaterialTheme.colorScheme.primary
+                                        }
+                                        
+                                        Box(
+                                            modifier = Modifier
+                                                .size(32.dp)
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(triggerColor.copy(alpha = 0.12f)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = triggerIcon,
+                                                contentDescription = null,
+                                                tint = triggerColor,
+                                                modifier = Modifier.size(16.dp)
+                                            )
                                         }
 
-                                        // Trigger Type Badge display
-                                        item {
-                                            val triggerLabel = when (reply.triggerType) {
-                                                "CALL_ACTIVE" -> if (settings.appLanguage == "en") "📞 Active Call" else "📞 رنين مكالمة"
-                                                "CALL_MISSED" -> if (settings.appLanguage == "en") "❌ Missed Call" else "❌ مكالمة فائتة"
-                                                else -> if (settings.appLanguage == "en") "💬 Chat" else "💬 دردشة"
-                                            }
-                                            Box(
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(6.dp))
-                                                    .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f))
-                                                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                                            ) {
-                                                Text(
-                                                    text = triggerLabel,
-                                                    fontWeight = FontWeight.Bold,
-                                                    fontSize = 10.sp,
-                                                    color = MaterialTheme.colorScheme.tertiary
-                                                )
-                                            }
+                                        Column {
+                                            Text(
+                                                text = if (settings.appLanguage == "en") "If message/call matches:" else "إذا احتوى كلام المرسل/الرنين على:",
+                                                fontSize = 11.sp,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+                                            )
+                                            Text(
+                                                text = "\"${reply.keyword}\"",
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (reply.isEnabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                            )
                                         }
+                                    }
 
-                                        // Reply Type Badge Display
-                                        item {
-                                            val typeLabel = if (reply.replyType == "VOICE") {
-                                                if (settings.appLanguage == "en") "🎙️ Voice Spoken" else "🎙️ رسالة صوتية"
-                                            } else {
-                                                if (settings.appLanguage == "en") "📝 Text" else "📝 رد نصي"
-                                            }
-                                            Box(
-                                                modifier = Modifier
-                                                    .clip(RoundedCornerShape(6.dp))
-                                                    .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f))
-                                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    Switch(
+                                        checked = reply.isEnabled,
+                                        onCheckedChange = { viewModel.toggleReplyCode(reply, it) },
+                                        modifier = Modifier.testTag("reply_toggle_${reply.id}").scale(0.85f)
+                                    )
+                                }
+
+                                // 2. MIDDLE BUBBLE: Clear shaded container for the Reply Text content
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(
+                                            if (reply.replyType == "VOICE") MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.18f)
+                                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
+                                        )
+                                        .padding(12.dp)
+                                ) {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.Top
+                                    ) {
+                                        val replyIcon = if (reply.replyType == "VOICE") Icons.Default.RecordVoiceOver else Icons.Default.ChatBubbleOutline
+                                        val replyColor = if (reply.replyType == "VOICE") MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary
+                                        
+                                        Icon(
+                                            imageVector = replyIcon,
+                                            contentDescription = null,
+                                            tint = replyColor,
+                                            modifier = Modifier.size(18.dp).padding(top = 1.dp)
+                                        )
+                                        
+                                        Column {
+                                            Text(
+                                                text = if (reply.replyType == "VOICE") {
+                                                    if (settings.appLanguage == "en") "🎙️ Spoken Voice Reply" else "🎙️ رد مسموع (بصوت المساعد)"
+                                                } else {
+                                                    if (settings.appLanguage == "en") "📝 Written Text Reply" else "📝 رد تلقائي نصي"
+                                                },
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = replyColor
+                                            )
+                                            Spacer(modifier = Modifier.height(3.dp))
+                                            Text(
+                                                text = reply.replyText,
+                                                fontSize = 13.sp,
+                                                lineHeight = 18.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = if (reply.isEnabled) MaterialTheme.colorScheme.onSurface 
+                                                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                            )
+                                        }
+                                    }
+                                }
+
+                                // 3. BOTTOM ROW: Filtering Metadata Row
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    // Trigger Context badge
+                                    val triggerLabel = when (reply.triggerType) {
+                                        "CALL_ACTIVE" -> if (settings.appLanguage == "en") "Call Active" else "رنين المكالمة"
+                                        "CALL_MISSED" -> if (settings.appLanguage == "en") "Missed Call" else "مكالمة فائتة"
+                                        else -> if (settings.appLanguage == "en") "Chat Message" else "رسالة دردشة"
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                                            .padding(horizontal = 6.dp, vertical = 3.dp)
+                                    ) {
+                                        Text(
+                                            text = triggerLabel,
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+
+                                    // Contacts filter badge
+                                    if (!reply.contactName.isNullOrBlank()) {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.08f))
+                                                .padding(horizontal = 6.dp, vertical = 3.dp)
+                                        ) {
+                                            Row(
+                                                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                                                verticalAlignment = Alignment.CenterVertically
                                             ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Person,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.secondary,
+                                                    modifier = Modifier.size(10.dp)
+                                                )
                                                 Text(
-                                                    text = typeLabel,
+                                                    text = reply.contactName,
+                                                    fontSize = 9.sp,
                                                     fontWeight = FontWeight.Bold,
-                                                    fontSize = 10.sp,
                                                     color = MaterialTheme.colorScheme.secondary
                                                 )
                                             }
                                         }
-
-                                        // Target Account Tag
-                                        if (!reply.targetAccount.isNullOrBlank()) {
-                                            item {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .clip(RoundedCornerShape(6.dp))
-                                                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
-                                                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                                                ) {
-                                                    Text(
-                                                        text = "${if (settings.appLanguage == "en") "Account" else "حساب"}: ${reply.targetAccount}",
-                                                        fontWeight = FontWeight.Bold,
-                                                        fontSize = 10.sp,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                    )
-                                                }
-                                            }
-                                        }
-
-                                        // Contact Tag Display
-                                        item {
-                                            if (!reply.contactName.isNullOrBlank()) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .clip(RoundedCornerShape(6.dp))
-                                                        .background(
-                                                            if (reply.isEnabled) MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f)
-                                                            else MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
-                                                        )
-                                                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                                                ) {
-                                                    Text(
-                                                        text = "${labels.contactSpecificOnly}${reply.contactName}",
-                                                        fontWeight = FontWeight.Bold,
-                                                        fontSize = 10.sp,
-                                                        color = if (reply.isEnabled) MaterialTheme.colorScheme.secondary
-                                                        else MaterialTheme.colorScheme.outline
-                                                    )
-                                                }
-                                            } else {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .clip(RoundedCornerShape(6.dp))
-                                                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
-                                                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                                                ) {
-                                                    Text(
-                                                        text = labels.appliesToAll,
-                                                        fontWeight = FontWeight.Medium,
-                                                        fontSize = 10.sp,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-                                                    )
-                                                }
-                                            }
+                                    } else {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                                                .padding(horizontal = 6.dp, vertical = 3.dp)
+                                        ) {
+                                            Text(
+                                                text = if (settings.appLanguage == "en") "All Contacts" else "جميع السندرالمرسلين",
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                            )
                                         }
                                     }
 
-                                    Text(
-                                        text = reply.replyText,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Normal,
-                                        color = if (reply.isEnabled) MaterialTheme.colorScheme.onSurface
-                                        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                                    )
+                                    // Target Account phone number match context
+                                    if (!reply.targetAccount.isNullOrBlank()) {
+                                        Box(
+                                            modifier = Modifier
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.08f))
+                                                .padding(horizontal = 6.dp, vertical = 3.dp)
+                                        ) {
+                                            Row(
+                                                horizontalArrangement = Arrangement.spacedBy(3.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Phone,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.tertiary,
+                                                    modifier = Modifier.size(10.dp)
+                                                )
+                                                Text(
+                                                    text = reply.targetAccount,
+                                                    fontSize = 9.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.tertiary
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
-                                Switch(
-                                    checked = reply.isEnabled,
-                                    onCheckedChange = { viewModel.toggleReplyCode(reply, it) },
-                                    modifier = Modifier.testTag("reply_toggle_${reply.id}")
-                                )
                             }
                         }
                     }
@@ -492,32 +687,71 @@ fun RepliesScreen(
                 showAddDialog = false
                 viewModel.clearPrefilledContact()
             },
-            title = { Text(labels.addRuleTitle) },
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AddCircle,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = labels.addRuleTitle,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                }
+            },
             text = {
+                val scrollState = rememberScrollState()
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(scrollState)
+                        .padding(vertical = 4.dp)
                 ) {
                     Text(
                         text = labels.addRuleSubtitle,
                         fontSize = 12.sp,
+                        lineHeight = 16.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
-                    // Keyword Trigger Input
-                    TextField(
-                        value = keyword,
-                        onValueChange = { keyword = it },
-                        label = { Text(labels.matchKeywordLabel) },
-                        placeholder = { Text(labels.matchKeywordPlaceholder) },
-                        modifier = Modifier.fillMaxWidth().testTag("add_keyword_input"),
-                        singleLine = true
-                    )
+                    // SECTION 1: TRIGGER CONDITION
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(Icons.Default.VpnKey, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                            Text(
+                                text = if (settings.appLanguage == "en") "1. Trigger Condition & Keyword" else "1. شرط التشغيل والكلمة المفتاحية",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        
+                        OutlinedTextField(
+                            value = keyword,
+                            onValueChange = { keyword = it },
+                            label = { Text(labels.matchKeywordLabel) },
+                            placeholder = { Text(labels.matchKeywordPlaceholder) },
+                            modifier = Modifier.fillMaxWidth().testTag("add_keyword_input"),
+                            singleLine = true,
+                            shape = RoundedCornerShape(12.dp)
+                        )
 
-                    // Trigger Type chips
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(labels.ruleTriggerTypeLabel, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            text = labels.ruleTriggerTypeLabel,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
                             FilterChip(
                                 selected = triggerType == "CHAT",
                                 onClick = { triggerType = "CHAT" },
@@ -536,9 +770,26 @@ fun RepliesScreen(
                         }
                     }
 
-                    // Reply Delivery Type chips
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(labels.ruleReplyTypeLabel, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+
+                    // SECTION 2: RESPONSE CONTENT
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(Icons.Default.RecordVoiceOver, null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(16.dp))
+                            Text(
+                                text = if (settings.appLanguage == "en") "2. Automated Response" else "2. صيغة وقناة الرد التلقائي",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+
+                        Text(
+                            text = labels.ruleReplyTypeLabel,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             FilterChip(
                                 selected = replyType == "TEXT",
@@ -551,47 +802,91 @@ fun RepliesScreen(
                                 label = { Text(labels.replyTypeVoice) }
                             )
                         }
+
+                        OutlinedTextField(
+                            value = replyText,
+                            onValueChange = { replyText = it },
+                            label = { Text(labels.replyTextLabel) },
+                            placeholder = { Text(labels.replyTextPlaceholder) },
+                            modifier = Modifier.fillMaxWidth().testTag("add_reply_input"),
+                            minLines = 3,
+                            shape = RoundedCornerShape(12.dp)
+                        )
                     }
 
-                    // Filtering parameters (Contact Specific & Multi Accounts specific)
-                    TextField(
-                        value = contactName,
-                        onValueChange = { contactName = it },
-                        label = { Text(labels.contactNameLabel) },
-                        placeholder = { Text(labels.contactNamePlaceholder) },
-                        modifier = Modifier.fillMaxWidth().testTag("add_contact_input"),
-                        singleLine = true
-                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
 
-                    TextField(
-                        value = targetAccount,
-                        onValueChange = { targetAccount = it },
-                        label = { Text(labels.ruleTargetAccountLabel) },
-                        placeholder = { Text(labels.ruleTargetAccountDesc) },
-                        modifier = Modifier.fillMaxWidth().testTag("add_target_account_input"),
-                        singleLine = true
-                    )
+                    // SECTION 3: ADVANCED OPTIONAL FILTERS
+                    var showOptionalFilters by remember { mutableStateOf(false) }
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showOptionalFilters = !showOptionalFilters }
+                                .padding(vertical = 4.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Icon(Icons.Default.Settings, null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(16.dp))
+                                Text(
+                                    text = if (settings.appLanguage == "en") "3. Advanced Filters (Optional)" else "3. فلاتر التصفية المتقدمة (اختياري)",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.tertiary
+                                )
+                            }
+                            Icon(
+                                imageVector = if (showOptionalFilters) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
 
-                    TextField(
-                        value = replyText,
-                        onValueChange = { replyText = it },
-                        label = { Text(labels.replyTextLabel) },
-                        placeholder = { Text(labels.replyTextPlaceholder) },
-                        modifier = Modifier.fillMaxWidth().testTag("add_reply_input"),
-                        minLines = 3
-                    )
+                        AnimatedVisibility(
+                            visible = showOptionalFilters,
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically()
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                                OutlinedTextField(
+                                    value = contactName,
+                                    onValueChange = { contactName = it },
+                                    label = { Text(labels.contactNameLabel) },
+                                    placeholder = { Text(labels.contactNamePlaceholder) },
+                                    modifier = Modifier.fillMaxWidth().testTag("add_contact_input"),
+                                    singleLine = true,
+                                    leadingIcon = { Icon(Icons.Default.Person, null, modifier = Modifier.size(18.dp)) },
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+
+                                OutlinedTextField(
+                                    value = targetAccount,
+                                    onValueChange = { targetAccount = it },
+                                    label = { Text(labels.ruleTargetAccountLabel) },
+                                    placeholder = { Text(labels.ruleTargetAccountDesc) },
+                                    modifier = Modifier.fillMaxWidth().testTag("add_target_account_input"),
+                                    singleLine = true,
+                                    leadingIcon = { Icon(Icons.Default.Phone, null, modifier = Modifier.size(18.dp)) },
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                            }
+                        }
+                    }
 
                     if (isError) {
                         Text(
                             text = labels.fieldsRequiredError,
                             color = MaterialTheme.colorScheme.error,
-                            fontSize = 12.sp
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
             },
             confirmButton = {
-                TextButton(
+                Button(
                     onClick = {
                         if (keyword.isBlank() || replyText.isBlank()) {
                             isError = true
@@ -608,16 +903,20 @@ fun RepliesScreen(
                             viewModel.clearPrefilledContact()
                         }
                     },
+                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.testTag("save_new_reply_button")
                 ) {
                     Text(labels.saveRuleBtn)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { 
-                    showAddDialog = false
-                    viewModel.clearPrefilledContact()
-                }) {
+                TextButton(
+                    onClick = { 
+                        showAddDialog = false
+                        viewModel.clearPrefilledContact()
+                    },
+                    shape = RoundedCornerShape(12.dp)
+                ) {
                     Text(labels.cancelBtn)
                 }
             }
@@ -636,24 +935,63 @@ fun RepliesScreen(
 
         AlertDialog(
             onDismissRequest = { editingReply = null },
-            title = { Text(labels.editRuleTitle) },
-            text = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth()
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    TextField(
-                        value = keyword,
-                        onValueChange = { keyword = it },
-                        label = { Text(labels.matchKeywordLabel) },
-                        modifier = Modifier.fillMaxWidth().testTag("edit_keyword_input"),
-                        singleLine = true
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.secondary
                     )
+                    Text(
+                        text = labels.editRuleTitle,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                }
+            },
+            text = {
+                val scrollState = rememberScrollState()
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(scrollState)
+                        .padding(vertical = 4.dp)
+                ) {
+                    // SECTION 1: TRIGGER CONDITION
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(Icons.Default.VpnKey, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                            Text(
+                                text = if (settings.appLanguage == "en") "1. Trigger Condition & Keyword" else "1. شرط التشغيل والكلمة المفتاحية",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
 
-                    // Trigger Type selection
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(labels.ruleTriggerTypeLabel, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        OutlinedTextField(
+                            value = keyword,
+                            onValueChange = { keyword = it },
+                            label = { Text(labels.matchKeywordLabel) },
+                            modifier = Modifier.fillMaxWidth().testTag("edit_keyword_input"),
+                            singleLine = true,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+
+                        Text(
+                            text = labels.ruleTriggerTypeLabel,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
                             FilterChip(
                                 selected = triggerType == "CHAT",
                                 onClick = { triggerType = "CHAT" },
@@ -672,9 +1010,26 @@ fun RepliesScreen(
                         }
                     }
 
-                    // Reply Delivery Type selection
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(labels.ruleReplyTypeLabel, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+
+                    // SECTION 2: RESPONSE CONTENT
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(Icons.Default.RecordVoiceOver, null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(16.dp))
+                            Text(
+                                text = if (settings.appLanguage == "en") "2. Automated Response" else "2. صيغة وقناة الرد التلقائي",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+
+                        Text(
+                            text = labels.ruleReplyTypeLabel,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             FilterChip(
                                 selected = replyType == "TEXT",
@@ -687,39 +1042,84 @@ fun RepliesScreen(
                                 label = { Text(labels.replyTypeVoice) }
                             )
                         }
+
+                        OutlinedTextField(
+                            value = replyText,
+                            onValueChange = { replyText = it },
+                            label = { Text(labels.replyTextLabel) },
+                            modifier = Modifier.fillMaxWidth().testTag("edit_reply_input"),
+                            minLines = 3,
+                            shape = RoundedCornerShape(12.dp)
+                        )
                     }
 
-                    TextField(
-                        value = contactName,
-                        onValueChange = { contactName = it },
-                        label = { Text(labels.contactNameLabel) },
-                        placeholder = { Text(labels.contactNamePlaceholder) },
-                        modifier = Modifier.fillMaxWidth().testTag("edit_contact_input"),
-                        singleLine = true
-                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
 
-                    TextField(
-                        value = targetAccount,
-                        onValueChange = { targetAccount = it },
-                        label = { Text(labels.ruleTargetAccountLabel) },
-                        placeholder = { Text(labels.ruleTargetAccountDesc) },
-                        modifier = Modifier.fillMaxWidth().testTag("edit_target_account_input"),
-                        singleLine = true
-                    )
+                    // SECTION 3: ADVANCED OPTIONAL FILTERS
+                    var showOptionalFilters by remember { mutableStateOf(!contactName.isEmpty() || !targetAccount.isEmpty()) }
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showOptionalFilters = !showOptionalFilters }
+                                .padding(vertical = 4.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Icon(Icons.Default.Settings, null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(16.dp))
+                                Text(
+                                    text = if (settings.appLanguage == "en") "3. Advanced Filters (Optional)" else "3. فلاتر التصفية المتقدمة (اختياري)",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.tertiary
+                                )
+                            }
+                            Icon(
+                                imageVector = if (showOptionalFilters) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
 
-                    TextField(
-                        value = replyText,
-                        onValueChange = { replyText = it },
-                        label = { Text(labels.replyTextLabel) },
-                        modifier = Modifier.fillMaxWidth().testTag("edit_reply_input"),
-                        minLines = 3
-                    )
+                        AnimatedVisibility(
+                            visible = showOptionalFilters,
+                            enter = fadeIn() + expandVertically(),
+                            exit = fadeOut() + shrinkVertically()
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                                OutlinedTextField(
+                                    value = contactName,
+                                    onValueChange = { contactName = it },
+                                    label = { Text(labels.contactNameLabel) },
+                                    placeholder = { Text(labels.contactNamePlaceholder) },
+                                    modifier = Modifier.fillMaxWidth().testTag("edit_contact_input"),
+                                    singleLine = true,
+                                    leadingIcon = { Icon(Icons.Default.Person, null, modifier = Modifier.size(18.dp)) },
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+
+                                OutlinedTextField(
+                                    value = targetAccount,
+                                    onValueChange = { targetAccount = it },
+                                    label = { Text(labels.ruleTargetAccountLabel) },
+                                    placeholder = { Text(labels.ruleTargetAccountDesc) },
+                                    modifier = Modifier.fillMaxWidth().testTag("edit_target_account_input"),
+                                    singleLine = true,
+                                    leadingIcon = { Icon(Icons.Default.Phone, null, modifier = Modifier.size(18.dp)) },
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                            }
+                        }
+                    }
 
                     if (isError) {
                         Text(
                             text = labels.fieldsRequiredError,
                             color = MaterialTheme.colorScheme.error,
-                            fontSize = 12.sp
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
@@ -727,9 +1127,10 @@ fun RepliesScreen(
             confirmButton = {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Delete button styled in error color red
+                    // Delete Button styled in error color red
                     TextButton(
                         onClick = {
                             viewModel.deleteReply(reply)
@@ -743,11 +1144,17 @@ fun RepliesScreen(
                         Text(labels.deleteRuleBtn)
                     }
 
-                    Row {
-                        TextButton(onClick = { editingReply = null }) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextButton(
+                            onClick = { editingReply = null },
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
                             Text(labels.cancelBtn)
                         }
-                        TextButton(
+                        Button(
                             onClick = {
                                 if (keyword.isBlank() || replyText.isBlank()) {
                                     isError = true
@@ -765,6 +1172,7 @@ fun RepliesScreen(
                                     editingReply = null
                                 }
                             },
+                            shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.testTag("save_edit_reply_button")
                         ) {
                             Text(labels.saveBtn)

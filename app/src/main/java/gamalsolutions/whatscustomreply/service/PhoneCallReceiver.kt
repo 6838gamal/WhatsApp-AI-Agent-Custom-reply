@@ -97,9 +97,10 @@ class PhoneCallReceiver : BroadcastReceiver(), KoinComponent {
 
                 } else if (state == TelephonyManager.EXTRA_STATE_OFFHOOK) {
                     isWasRinging = false
-                    if (settings.interactiveVoiceCallEnabled && finalNumber.isNotBlank()) {
-                        Log.d(TAG, "EXTRA_STATE_OFFHOOK: Starting Interactive Voice Assistant Dialogue Flow.")
-                        interactiveVoiceHelper.startDialogue(settings, finalNumber)
+                    if (settings.interactiveVoiceCallEnabled) {
+                        val activeNum = if (finalNumber.isNotBlank()) finalNumber else "المكالمة الجارية"
+                        Log.d(TAG, "EXTRA_STATE_OFFHOOK: Starting Interactive Voice Assistant Dialogue Flow with number: $activeNum")
+                        interactiveVoiceHelper.startDialogue(settings, activeNum)
                     }
                 } else if (state == TelephonyManager.EXTRA_STATE_IDLE) {
                     val missedTriggered = isWasRinging && finalNumber.isNotBlank()
@@ -281,133 +282,10 @@ class PhoneCallReceiver : BroadcastReceiver(), KoinComponent {
     }
 
     private fun isPhoneAccountAllowed(context: Context, intent: Intent, settings: AppSettings): Boolean {
-        if (settings.primaryAccountPhone.isBlank() && settings.additionalAccountPhones.isBlank()) {
-            return true
-        }
-
-        val allowedAccounts = mutableListOf<String>()
-        if (settings.primaryAccountPhone.isNotBlank()) {
-            allowedAccounts.add(settings.primaryAccountPhone.trim())
-        }
-        if (settings.additionalAccountPhones.isNotBlank()) {
-            settings.additionalAccountPhones.split(",").forEach {
-                if (it.isNotBlank()) {
-                    allowedAccounts.add(it.trim())
-                }
-            }
-        }
-
-        if (allowedAccounts.isEmpty()) return true
-
-        // For cellular standard calls, we will try to resolve cellular SIM phone numbers from SubscriptionManager
-        val discoveredSimNumbers = mutableListOf<String>()
-        
-        try {
-            val subscriptionManager = context.getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as? SubscriptionManager
-            if (subscriptionManager != null) {
-                val activeList = subscriptionManager.activeSubscriptionInfoList
-                if (activeList != null) {
-                    for (info in activeList) {
-                        val num = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            try { subscriptionManager.getPhoneNumber(info.subscriptionId) } catch (e: Exception) { info.number }
-                        } else {
-                            @Suppress("DEPRECATION")
-                            info.number
-                        }
-                        if (!num.isNullOrBlank()) {
-                            discoveredSimNumbers.add(num)
-                        }
-                    }
-                }
-            }
-        } catch (e: SecurityException) {
-            Log.d(TAG, "No phone state permission to read SIM subscription numbers: ${e.message}")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error fetching subscription info number: ${e.message}")
-        }
-
-        // Also add SIM subId or slot id as simple string representation in case users configure them (e.g. "slot_0", "slot_1")
-        val slotId = intent.getIntExtra("slot", -1)
-        val simId = intent.getIntExtra("simId", -1)
-        val subId = intent.getIntExtra("subscription", -1)
-        
-        if (slotId != -1) discoveredSimNumbers.add("slot_$slotId")
-        if (simId != -1) discoveredSimNumbers.add("slot_$simId")
-        if (subId != -1) discoveredSimNumbers.add("sub_$subId")
-
-        val normalizedAllowed = allowedAccounts.map { it.replace(" ", "").replace("+", "").replace("-", "") }
-        val normalizedDiscovered = discoveredSimNumbers.map { it.replace(" ", "").replace("+", "").replace("-", "") }
-
-        for (acc in normalizedAllowed) {
-            for (sim in normalizedDiscovered) {
-                if (sim.contains(acc, ignoreCase = true)) {
-                    Log.d(TAG, "Confirmed: receiving cellular call matches allowed SIM account: $acc")
-                    return true
-                }
-            }
-        }
-
-        // Safe Fallback: if Android / SubscriberManager doesn't supply SIM phone number (which is very common for many SIM cards),
-        // we should not block cellular calls as long as there is no contradictory dual SIM info!
-        // So we permit if we couldn't read any actual numeric SIM numbers from Telephony.
-        val hasAnyDetectedSimNumber = normalizedDiscovered.any { text ->
-            text.any { it.isDigit() } && text.filter { it.isDigit() }.length >= 5
-        }
-
-        if (!hasAnyDetectedSimNumber) {
-            Log.d(TAG, "No valid cellular SIM phone number detected from Telephony. Safe fallback: permitting cellular call.")
-            return true
-        }
-
-        Log.d(TAG, "Blocked cellular call because configured accounts did not match active SIM card slot/number.")
-        return false
+        return true
     }
 
     private fun isRuleTargetPhoneAllowed(reply: CustomReplyEntity, context: Context, intent: Intent, settings: AppSettings): Boolean {
-        if (!isPhoneAccountAllowed(context, intent, settings)) return false
-
-        val target = reply.targetAccount
-        if (target.isNullOrBlank()) return true
-
-        val normTarget = target.trim().replace(" ", "").replace("+", "").replace("-", "")
-
-        val discoveredSimNumbers = mutableListOf<String>()
-        try {
-            val subscriptionManager = context.getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as? SubscriptionManager
-            if (subscriptionManager != null) {
-                val activeList = subscriptionManager.activeSubscriptionInfoList
-                if (activeList != null) {
-                    for (info in activeList) {
-                        val num = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            try { subscriptionManager.getPhoneNumber(info.subscriptionId) } catch (e: Exception) { info.number }
-                        } else {
-                            @Suppress("DEPRECATION")
-                            info.number
-                        }
-                        if (!num.isNullOrBlank()) discoveredSimNumbers.add(num)
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error fetching subscription info number on rule check: ${e.message}")
-        }
-
-        val slotId = intent.getIntExtra("slot", -1)
-        val simId = intent.getIntExtra("simId", -1)
-        val subId = intent.getIntExtra("subscription", -1)
-        
-        if (slotId != -1) discoveredSimNumbers.add("slot_$slotId")
-        if (simId != -1) discoveredSimNumbers.add("slot_$simId")
-        if (subId != -1) discoveredSimNumbers.add("sub_$subId")
-
-        val normalizedDiscovered = discoveredSimNumbers.map { it.replace(" ", "").replace("+", "").replace("-", "") }
-
-        for (sim in normalizedDiscovered) {
-            if (sim.contains(normTarget, ignoreCase = true)) {
-                return true
-            }
-        }
-
-        return false
+        return true
     }
 }

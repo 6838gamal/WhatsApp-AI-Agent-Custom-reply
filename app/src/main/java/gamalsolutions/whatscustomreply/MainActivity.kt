@@ -60,7 +60,8 @@ class MainActivity : ComponentActivity() {
         requestPermissionLauncher.launch(
             arrayOf(
                 android.Manifest.permission.RECORD_AUDIO,
-                android.Manifest.permission.READ_PHONE_STATE
+                android.Manifest.permission.READ_PHONE_STATE,
+                android.Manifest.permission.READ_CALL_LOG
             )
         )
 
