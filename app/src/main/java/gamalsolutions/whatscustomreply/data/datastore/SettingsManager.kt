@@ -32,7 +32,8 @@ data class AppSettings(
     val ringerVolume: Int,
     val mediaVolume: Int,
     val ringerMode: Int,
-    val dismissNotificationsEnabled: Boolean
+    val dismissNotificationsEnabled: Boolean,
+    val voiceReplyEnabled: Boolean
 )
 
 class SettingsManager(private val context: Context) {
@@ -61,6 +62,7 @@ class SettingsManager(private val context: Context) {
         val KEY_MEDIA_VOLUME = intPreferencesKey("media_volume")
         val KEY_RINGER_MODE = intPreferencesKey("ringer_mode")
         val KEY_DISMISS_NOTIFICATIONS_ENABLED = booleanPreferencesKey("dismiss_notifications_enabled")
+        val KEY_VOICE_REPLY_ENABLED = booleanPreferencesKey("voice_reply_enabled")
     }
 
     val settingsFlow: Flow<AppSettings> = context.dataStore.data.map { preferences ->
@@ -87,7 +89,8 @@ class SettingsManager(private val context: Context) {
             ringerVolume = preferences[KEY_RINGER_VOLUME] ?: 70,
             mediaVolume = preferences[KEY_MEDIA_VOLUME] ?: 60,
             ringerMode = preferences[KEY_RINGER_MODE] ?: 2, // Normal (0 = Silent, 1 = Vibrate, 2 = Normal)
-            dismissNotificationsEnabled = preferences[KEY_DISMISS_NOTIFICATIONS_ENABLED] ?: false
+            dismissNotificationsEnabled = preferences[KEY_DISMISS_NOTIFICATIONS_ENABLED] ?: false,
+            voiceReplyEnabled = preferences[KEY_VOICE_REPLY_ENABLED] ?: false
         )
     }
 
@@ -114,6 +117,7 @@ class SettingsManager(private val context: Context) {
     suspend fun updateMediaVolume(value: Int) = set(KEY_MEDIA_VOLUME, value)
     suspend fun updateRingerMode(value: Int) = set(KEY_RINGER_MODE, value)
     suspend fun updateDismissNotificationsEnabled(value: Boolean) = set(KEY_DISMISS_NOTIFICATIONS_ENABLED, value)
+    suspend fun updateVoiceReplyEnabled(value: Boolean) = set(KEY_VOICE_REPLY_ENABLED, value)
 
     private suspend fun <T> set(key: Preferences.Key<T>, value: T) {
         context.dataStore.edit { preferences ->

@@ -48,6 +48,9 @@ val appModule = module {
     // Repository for Custom API Client
     single { CustomApiRepository(get()) }
 
+    // Speech synthesis helper
+    single { gamalsolutions.whatscustomreply.service.SpeechHelper(androidContext()) }
+
     // ViewModel
     viewModel { MainViewModel(get(), get(), get(), get(), get()) }
 }

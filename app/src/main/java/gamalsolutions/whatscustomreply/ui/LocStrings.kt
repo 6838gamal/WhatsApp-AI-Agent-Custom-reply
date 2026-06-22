@@ -133,6 +133,8 @@ sealed class LocStrings {
     abstract val quietModeDesc: String
     abstract val dismissNotificationsSetting: String
     abstract val dismissNotificationsSettingDesc: String
+    abstract val voiceReplyAnnounceSetting: String
+    abstract val voiceReplyAnnounceSettingDesc: String
     
     // Modes
     abstract val modeCustom: String
@@ -270,6 +272,8 @@ object ArStrings : LocStrings() {
     override val quietModeDesc = "خصص طريقة عرض وسلوك الإشعارات الواردة حتى يتسنى لك مواصلة استخدام الهاتف لإبرام الصفقات ومتابعة مهامك دون أي مقاطعة بصرية على الشاشة."
     override val dismissNotificationsSetting = "إخفاء و كتم إشعارات المحادثات والمكالمات"
     override val dismissNotificationsSettingDesc = "إلغاء الإشعارات تلقائياً من شاشة القفل والمنبثقات بمجرد الرد عليها، لتواصل عملك دون انقطاع، مع الحفاظ على كافة التفاصيل مسجلة داخل هذا التطبيق."
+    override val voiceReplyAnnounceSetting = "الردود الصوتية وقراءة التقارير تلقائياً"
+    override val voiceReplyAnnounceSettingDesc = "استماع مباشر لنصوص الردود المبعوثة تلقائياً وكذا التنبيهات الصوتية (TTS) دون الحاجة لفتح شاشة الهاتف أو لمسه."
     
     override val modeCustom = "القواعد والكلمات المفتاحية"
     override val modeCustomDesc = "الاعتماد بالكامل على مطابقة الكلمات المفتاحية والقواعد اليدوية."
@@ -406,6 +410,8 @@ object EnStrings : LocStrings() {
     override val quietModeDesc = "Control notification behaviors so you can continue using your phone to secure deals and complete work without any visual screen interruptions."
     override val dismissNotificationsSetting = "Auto-Dismiss Chat & Call Notifications"
     override val dismissNotificationsSettingDesc = "Instantly clear WhatsApp popups and overlay banners after replying to them. Focus on phone use while keeping full activity stored in Logs."
+    override val voiceReplyAnnounceSetting = "Text-to-Speech Spoken Announcements"
+    override val voiceReplyAnnounceSettingDesc = "Listen directly to real-time audio announcements of incoming events and sent automated replies, keeping your focus 100% off-screen."
     
     override val modeCustom = "Keyword Matching Rules"
     override val modeCustomDesc = "Relies entirely on matching keywords."

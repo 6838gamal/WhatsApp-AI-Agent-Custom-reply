@@ -429,6 +429,24 @@ fun SettingsScreen(
                         modifier = Modifier.testTag("dismiss_notifications_switch")
                     )
                 }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(labels.voiceReplyAnnounceSetting, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                        Text(labels.voiceReplyAnnounceSettingDesc, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(
+                        checked = settings.voiceReplyEnabled,
+                        onCheckedChange = { viewModel.updateVoiceReplyEnabled(it) },
+                        modifier = Modifier.testTag("voice_reply_switch")
+                    )
+                }
             }
         }
 

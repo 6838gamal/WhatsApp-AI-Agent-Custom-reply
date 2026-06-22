@@ -68,7 +68,8 @@ class MainViewModel(
                 ringerVolume = 70,
                 mediaVolume = 60,
                 ringerMode = 2,
-                dismissNotificationsEnabled = false
+                dismissNotificationsEnabled = false,
+                voiceReplyEnabled = false
             )
         )
 
@@ -246,6 +247,10 @@ class MainViewModel(
 
     fun updateDismissNotificationsEnabled(value: Boolean) {
         launchSafe("تحديث كتم وإخفاء إشعارات الشاشة", "updating screen notifications dismissal setting") { settingsManager.updateDismissNotificationsEnabled(value) }
+    }
+
+    fun updateVoiceReplyEnabled(value: Boolean) {
+        launchSafe("تحديث النطق والرد الصوتي التلقائي", "updating voice synthesis / text-to-speech announcement switch") { settingsManager.updateVoiceReplyEnabled(value) }
     }
 
     // --- Custom API Connection Testing ---

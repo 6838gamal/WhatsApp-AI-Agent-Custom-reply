@@ -32,6 +32,7 @@ class WhatsAppNotificationListenerService : NotificationListenerService(), KoinC
     private val logsRepository: LogsRepository by inject()
     private val customApiRepository: CustomApiRepository by inject()
     private val settingsManager: gamalsolutions.whatscustomreply.data.datastore.SettingsManager by inject()
+    private val speechHelper: SpeechHelper by inject()
 
     private val job = SupervisorJob()
     private val serviceScope = CoroutineScope(Dispatchers.IO + job)
@@ -120,7 +121,31 @@ class WhatsAppNotificationListenerService : NotificationListenerService(), KoinC
                     var usedMode = "WHATSAPP_CALL (STATIC)"
 
                     try {
-                        if (settings.replyMode == "API" || settings.replyMode == "HYBRID") {
+                        // Match local custom replies rules for WhatsApp calls
+                        val enabledReplies = repliesRepository.getEnabledReplies()
+                        var customMatchText: String? = null
+                        for (reply in enabledReplies) {
+                            val contactMatch = !reply.contactName.isNullOrBlank() && 
+                                reply.contactName.trim().equals(title.trim(), ignoreCase = true)
+                            val keywordMatch = reply.keyword.trim().equals("call", ignoreCase = true) || 
+                                reply.keyword.trim().equals("phone", ignoreCase = true) ||
+                                reply.keyword.trim().equals("اتصال", ignoreCase = true) ||
+                                reply.keyword.trim().equals("مكالمة", ignoreCase = true) ||
+                                reply.keyword.trim().equals("هاتف", ignoreCase = true)
+
+                            if (contactMatch) {
+                                customMatchText = reply.replyText
+                                usedMode = "WHATSAPP_CALL (CUSTOM_CONTACT_RULE)"
+                                break
+                            } else if (keywordMatch && reply.contactName.isNullOrBlank()) {
+                                customMatchText = reply.replyText
+                                usedMode = "WHATSAPP_CALL (CUSTOM_CALL_RULE)"
+                            }
+                        }
+
+                        if (customMatchText != null) {
+                            finalReplyText = customMatchText
+                        } else if (settings.replyMode == "API" || settings.replyMode == "HYBRID") {
                             val apiResult = customApiRepository.generateReply(
                                 apiUrl = settings.apiUrl,
                                 apiMethod = settings.apiMethod,
@@ -142,6 +167,15 @@ class WhatsAppNotificationListenerService : NotificationListenerService(), KoinC
 
                         val sendMethodSuccess = replyToNotification(sbn, finalReplyText)
                         
+                        if (sendMethodSuccess && settings.voiceReplyEnabled) {
+                            val announceText = if (settings.appLanguage == "en") {
+                                "Automated reply sent to WhatsApp caller $title: $finalReplyText"
+                            } else {
+                                "تم الرد تلقائياً على مكالمة واتساب من $title: $finalReplyText"
+                            }
+                            speechHelper.speak(announceText, settings.appLanguage)
+                        }
+
                         logsRepository.insertLog(
                             AutoReplyLogEntity(
                                 senderName = title,
@@ -295,6 +329,14 @@ class WhatsAppNotificationListenerService : NotificationListenerService(), KoinC
         if (isSuccess && replyText != null) {
             repliedUsers.add(sender)
             Log.d(TAG, "Automated reply sent successfully using RemoteInput!")
+            if (settings.voiceReplyEnabled) {
+                val announceText = if (settings.appLanguage == "en") {
+                    "Automated reply sent to $sender: $replyText"
+                } else {
+                    "تم الرد تلقائياً على $sender: $replyText"
+                }
+                speechHelper.speak(announceText, settings.appLanguage)
+            }
         }
 
         if (settings.dismissNotificationsEnabled) {

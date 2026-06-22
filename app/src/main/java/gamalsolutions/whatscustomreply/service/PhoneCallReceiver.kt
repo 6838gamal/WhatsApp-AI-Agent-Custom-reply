@@ -12,6 +12,7 @@ import gamalsolutions.whatscustomreply.data.api.CustomApiRepository
 import gamalsolutions.whatscustomreply.data.database.AutoReplyLogEntity
 import gamalsolutions.whatscustomreply.data.datastore.SettingsManager
 import gamalsolutions.whatscustomreply.data.repository.LogsRepository
+import gamalsolutions.whatscustomreply.data.repository.RepliesRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.firstOrNull
@@ -23,6 +24,8 @@ class PhoneCallReceiver : BroadcastReceiver(), KoinComponent {
     private val settingsManager: SettingsManager by inject()
     private val logsRepository: LogsRepository by inject()
     private val customApiRepository: CustomApiRepository by inject()
+    private val repliesRepository: RepliesRepository by inject()
+    private val speechHelper: SpeechHelper by inject()
 
     companion object {
         private const val TAG = "PhoneCallReceiver"
@@ -82,7 +85,31 @@ class PhoneCallReceiver : BroadcastReceiver(), KoinComponent {
                             var finalReplyText = settings.callReplyText
                             var usedMode = "CALL_RESPONDER (STATIC)"
 
-                            if (settings.replyMode == "API" || settings.replyMode == "HYBRID") {
+                            // Match local custom replies rules for incoming phone calls
+                            val enabledReplies = repliesRepository.getEnabledReplies()
+                            var customMatchText: String? = null
+                            for (reply in enabledReplies) {
+                                val contactMatch = !reply.contactName.isNullOrBlank() && 
+                                    reply.contactName.trim().replace(" ", "").equals(incomingNumber.trim().replace(" ", ""), ignoreCase = true)
+                                val keywordMatch = reply.keyword.trim().equals("call", ignoreCase = true) || 
+                                    reply.keyword.trim().equals("phone", ignoreCase = true) ||
+                                    reply.keyword.trim().equals("اتصال", ignoreCase = true) ||
+                                    reply.keyword.trim().equals("مكالمة", ignoreCase = true) ||
+                                    reply.keyword.trim().equals("هاتف", ignoreCase = true)
+
+                                if (contactMatch) {
+                                    customMatchText = reply.replyText
+                                    usedMode = "CALL_RESPONDER (CUSTOM_CONTACT_RULE)"
+                                    break
+                                } else if (keywordMatch && reply.contactName.isNullOrBlank()) {
+                                    customMatchText = reply.replyText
+                                    usedMode = "CALL_RESPONDER (CUSTOM_CALL_RULE)"
+                                }
+                            }
+
+                            if (customMatchText != null) {
+                                finalReplyText = customMatchText
+                            } else if (settings.replyMode == "API" || settings.replyMode == "HYBRID") {
                                 val apiResult = customApiRepository.generateReply(
                                     apiUrl = settings.apiUrl,
                                     apiMethod = settings.apiMethod,
@@ -110,6 +137,15 @@ class PhoneCallReceiver : BroadcastReceiver(), KoinComponent {
                             }
 
                             smsManager.sendTextMessage(incomingNumber, null, finalReplyText, null, null)
+
+                            if (settings.voiceReplyEnabled) {
+                                val announceB = if (settings.appLanguage == "en") {
+                                    "Incoming call from $incomingNumber automatically replied: $finalReplyText"
+                                } else {
+                                    "مكالمة هاتفية واردة من $incomingNumber، تم الرد عليها تلقائياً بـ: $finalReplyText"
+                                }
+                                speechHelper.speak(announceB, settings.appLanguage)
+                            }
 
                             logsRepository.insertLog(
                                 AutoReplyLogEntity(
