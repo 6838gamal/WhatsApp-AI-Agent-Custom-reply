@@ -311,7 +311,7 @@ fun DashboardScreen(
                     Icon(
                         imageVector = when (settings.replyMode) {
                             "CUSTOM" -> Icons.Filled.Settings
-                            "GEMINI" -> Icons.Filled.AutoAwesome
+                            "API" -> Icons.Filled.Code
                             else -> Icons.Filled.SettingsInputComposite
                         },
                         contentDescription = "Active Mode Icon",
@@ -320,7 +320,7 @@ fun DashboardScreen(
                     Text(
                         text = when (settings.replyMode) {
                             "CUSTOM" -> labels.modeCustom
-                            "GEMINI" -> labels.modeGemini
+                            "API" -> labels.modeGemini
                             else -> labels.modeHybrid
                         },
                         fontWeight = FontWeight.Black,
@@ -331,7 +331,7 @@ fun DashboardScreen(
                 Text(
                     text = when (settings.replyMode) {
                         "CUSTOM" -> labels.modeCustomDesc
-                        "GEMINI" -> labels.modeGeminiDesc
+                        "API" -> labels.modeGeminiDesc
                         else -> labels.modeHybridDesc
                     },
                     fontSize = 12.sp,
