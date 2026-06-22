@@ -662,5 +662,56 @@ fun SettingsScreen(
                 }
             }
         }
+
+        // 8. Multi-Account Management Section
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.PeopleOutline,
+                        contentDescription = "Multi Account filters",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text(labels.accountsSectionTitle, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                }
+
+                Text(
+                    text = labels.accountsSectionDesc,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                // Input field for Primary Phone
+                TextField(
+                    value = settings.primaryAccountPhone,
+                    onValueChange = { viewModel.updatePrimaryAccountPhone(it) },
+                    label = { Text(labels.primaryPhoneLabel) },
+                    placeholder = { Text("+9665xxxxxxxx") },
+                    modifier = Modifier.fillMaxWidth().testTag("primary_phone_input_field"),
+                    singleLine = true
+                )
+
+                // Input field for Additional Phones
+                TextField(
+                    value = settings.additionalAccountPhones,
+                    onValueChange = { viewModel.updateAdditionalAccountPhones(it) },
+                    label = { Text(labels.additionalPhonesLabel) },
+                    placeholder = { Text("+9665xxxxxxxx, +9665yyyyyyyy") },
+                    modifier = Modifier.fillMaxWidth().testTag("additional_phones_input_field"),
+                    singleLine = true
+                )
+            }
+        }
     }
 }

@@ -69,7 +69,9 @@ class MainViewModel(
                 mediaVolume = 60,
                 ringerMode = 2,
                 dismissNotificationsEnabled = false,
-                voiceReplyEnabled = false
+                voiceReplyEnabled = false,
+                primaryAccountPhone = "",
+                additionalAccountPhones = ""
             )
         )
 
@@ -117,10 +119,25 @@ class MainViewModel(
     }
 
     // --- Custom Reply CRUD Actions ---
-    fun addReply(keyword: String, replyText: String, contactName: String? = null) {
+    fun addReply(
+        keyword: String,
+        replyText: String,
+        contactName: String? = null,
+        triggerType: String = "CHAT",
+        replyType: String = "TEXT",
+        targetAccount: String? = null
+    ) {
         launchSafe("إضافة رد مخصص", "adding reply rule") {
             repliesRepository.insertReply(
-                CustomReplyEntity(keyword = keyword, replyText = replyText, isEnabled = true, contactName = contactName)
+                CustomReplyEntity(
+                    keyword = keyword,
+                    replyText = replyText,
+                    isEnabled = true,
+                    contactName = contactName,
+                    triggerType = triggerType,
+                    replyType = replyType,
+                    targetAccount = targetAccount
+                )
             )
         }
     }
@@ -286,5 +303,17 @@ class MainViewModel(
 
     fun resetConnectionTestResult() {
         _testConnectionResult.value = null
+    }
+
+    fun updatePrimaryAccountPhone(value: String) {
+        launchSafe("تحديث الحساب الأساسي", "updating primary account phone") {
+            settingsManager.updatePrimaryAccountPhone(value)
+        }
+    }
+
+    fun updateAdditionalAccountPhones(value: String) {
+        launchSafe("تحديث الحسابات المتعددة الإضافية", "updating additional multi-account phones list") {
+            settingsManager.updateAdditionalAccountPhones(value)
+        }
     }
 }

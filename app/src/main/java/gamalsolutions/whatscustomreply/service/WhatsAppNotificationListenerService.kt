@@ -11,6 +11,7 @@ import android.service.notification.StatusBarNotification
 import android.util.Log
 import gamalsolutions.whatscustomreply.data.api.CustomApiRepository
 import gamalsolutions.whatscustomreply.data.database.AutoReplyLogEntity
+import gamalsolutions.whatscustomreply.data.database.CustomReplyEntity
 import gamalsolutions.whatscustomreply.data.datastore.AppSettings
 import gamalsolutions.whatscustomreply.data.repository.LogsRepository
 import gamalsolutions.whatscustomreply.data.repository.RepliesRepository
@@ -80,6 +81,12 @@ class WhatsAppNotificationListenerService : NotificationListenerService(), KoinC
                 return@launch
             }
 
+            // Account validation checks
+            if (!isAccountAllowed(sbn, settings)) {
+                Log.d(TAG, "Notification skipped because it does not match configured target account filters.")
+                return@launch
+            }
+
             // WhatsApp Call Handling
             val isCallNotification = rawText.contains("Missed voice call") || 
                     rawText.contains("Missed video call") || 
@@ -119,12 +126,24 @@ class WhatsAppNotificationListenerService : NotificationListenerService(), KoinC
                 if (settings.callReplyEnabled) {
                     var finalReplyText = settings.callReplyText
                     var usedMode = "WHATSAPP_CALL (STATIC)"
+                    var matchedRuleType = "TEXT"
 
                     try {
                         // Match local custom replies rules for WhatsApp calls
                         val enabledReplies = repliesRepository.getEnabledReplies()
                         var customMatchText: String? = null
+                        var matchedRule: CustomReplyEntity? = null
+                        val isMissed = rawText.contains("Missed", ignoreCase = true) || rawText.contains("فائتة", ignoreCase = true)
+
                         for (reply in enabledReplies) {
+                            if (!isRuleTargetAccountAllowed(sbn, reply, title, rawText, settings)) {
+                                continue
+                            }
+
+                            val isCallActiveTrigger = reply.triggerType == "CALL_ACTIVE"
+                            val isCallMissedTrigger = reply.triggerType == "CALL_MISSED"
+                            val isCallTrigger = isCallActiveTrigger || isCallMissedTrigger
+
                             val contactMatch = !reply.contactName.isNullOrBlank() && 
                                 reply.contactName.trim().equals(title.trim(), ignoreCase = true)
                             val keywordMatch = reply.keyword.trim().equals("call", ignoreCase = true) || 
@@ -133,18 +152,40 @@ class WhatsAppNotificationListenerService : NotificationListenerService(), KoinC
                                 reply.keyword.trim().equals("مكالمة", ignoreCase = true) ||
                                 reply.keyword.trim().equals("هاتف", ignoreCase = true)
 
-                            if (contactMatch) {
-                                customMatchText = reply.replyText
-                                usedMode = "WHATSAPP_CALL (CUSTOM_CONTACT_RULE)"
-                                break
-                            } else if (keywordMatch && reply.contactName.isNullOrBlank()) {
-                                customMatchText = reply.replyText
-                                usedMode = "WHATSAPP_CALL (CUSTOM_CALL_RULE)"
+                            if (isCallTrigger) {
+                                if (isMissed && isCallMissedTrigger) {
+                                    if (contactMatch || (keywordMatch && reply.contactName.isNullOrBlank())) {
+                                        customMatchText = reply.replyText
+                                        matchedRule = reply
+                                        usedMode = "WHATSAPP_CALL (CUSTOM_CALL_MISSED_RULE)"
+                                        break
+                                    }
+                                } else if (!isMissed && isCallActiveTrigger) {
+                                    if (contactMatch || (keywordMatch && reply.contactName.isNullOrBlank())) {
+                                        customMatchText = reply.replyText
+                                        matchedRule = reply
+                                        usedMode = "WHATSAPP_CALL (CUSTOM_CALL_ACTIVE_RULE)"
+                                        break
+                                    }
+                                }
+                            } else {
+                                // Default rules fallback
+                                if (contactMatch) {
+                                    customMatchText = reply.replyText
+                                    matchedRule = reply
+                                    usedMode = "WHATSAPP_CALL (CUSTOM_CONTACT_RULE)"
+                                    break
+                                } else if (keywordMatch && reply.contactName.isNullOrBlank()) {
+                                    customMatchText = reply.replyText
+                                    matchedRule = reply
+                                    usedMode = "WHATSAPP_CALL (CUSTOM_CALL_RULE)"
+                                }
                             }
                         }
 
                         if (customMatchText != null) {
                             finalReplyText = customMatchText
+                            matchedRuleType = matchedRule?.replyType ?: "TEXT"
                         } else if (settings.replyMode == "API" || settings.replyMode == "HYBRID") {
                             val apiResult = customApiRepository.generateReply(
                                 apiUrl = settings.apiUrl,
@@ -165,9 +206,17 @@ class WhatsAppNotificationListenerService : NotificationListenerService(), KoinC
                             }
                         }
 
+                        if (matchedRuleType == "VOICE") {
+                            finalReplyText = if (settings.appLanguage == "en") {
+                                "🎙️ [Voice Reply]: $finalReplyText"
+                            } else {
+                                "🎙️ [رد صوتي]: $finalReplyText"
+                            }
+                        }
+
                         val sendMethodSuccess = replyToNotification(sbn, finalReplyText)
                         
-                        if (sendMethodSuccess && settings.voiceReplyEnabled) {
+                        if (sendMethodSuccess && (settings.voiceReplyEnabled || matchedRuleType == "VOICE")) {
                             val announceText = if (settings.appLanguage == "en") {
                                 "Automated reply sent to WhatsApp caller $title: $finalReplyText"
                             } else {
@@ -260,12 +309,16 @@ class WhatsAppNotificationListenerService : NotificationListenerService(), KoinC
         val mode = settings.replyMode // "CUSTOM", "API", "HYBRID"
         var replyText: String? = null
         var logMode = "CUSTOM"
+        var matchedReplyType = "TEXT"
 
         // Search Custom Keywords
-        val matchedCustom = findCustomReplyMatch(message, sender)
+        val matchedCustom = findCustomReplyMatch(sbn, message, sender, settings)
 
         if (mode == "CUSTOM") {
-            replyText = matchedCustom
+            if (matchedCustom != null) {
+                replyText = matchedCustom.replyText
+                matchedReplyType = matchedCustom.replyType
+            }
             logMode = "CUSTOM"
         } else if (mode == "API") {
             logMode = "CUSTOM_API"
@@ -282,7 +335,8 @@ class WhatsAppNotificationListenerService : NotificationListenerService(), KoinC
             apiResult.onFailure { e -> Log.e(TAG, "Custom API reply generation failed: ${e.message}") }
         } else if (mode == "HYBRID") {
             if (matchedCustom != null) {
-                replyText = matchedCustom
+                replyText = matchedCustom.replyText
+                matchedReplyType = matchedCustom.replyType
                 logMode = "CUSTOM (HYBRID)"
             } else {
                 logMode = "CUSTOM_API (HYBRID)"
@@ -297,6 +351,14 @@ class WhatsAppNotificationListenerService : NotificationListenerService(), KoinC
                 )
                 apiResult.onSuccess { text -> replyText = text }
                 apiResult.onFailure { e -> Log.e(TAG, "Custom API hybrid reply failed: ${e.message}") }
+            }
+        }
+
+        if (replyText != null && matchedReplyType == "VOICE") {
+            replyText = if (settings.appLanguage == "en") {
+                "🎙️ [Voice Reply]: $replyText"
+            } else {
+                "🎙️ [رد صوتي]: $replyText"
             }
         }
 
@@ -329,7 +391,7 @@ class WhatsAppNotificationListenerService : NotificationListenerService(), KoinC
         if (isSuccess && replyText != null) {
             repliedUsers.add(sender)
             Log.d(TAG, "Automated reply sent successfully using RemoteInput!")
-            if (settings.voiceReplyEnabled) {
+            if (settings.voiceReplyEnabled || matchedReplyType == "VOICE") {
                 val announceText = if (settings.appLanguage == "en") {
                     "Automated reply sent to $sender: $replyText"
                 } else {
@@ -349,15 +411,153 @@ class WhatsAppNotificationListenerService : NotificationListenerService(), KoinC
         }
     }
 
-    private suspend fun findCustomReplyMatch(messageText: String, sender: String): String? {
+    private suspend fun findCustomReplyMatch(sbn: StatusBarNotification, messageText: String, sender: String, settings: AppSettings): CustomReplyEntity? {
         val enabledReplies = repliesRepository.getEnabledReplies()
         for (reply in enabledReplies) {
+            if (reply.triggerType != "CHAT") continue
+            if (!isRuleTargetAccountAllowed(sbn, reply, sender, messageText, settings)) continue
+
             val contactMatch = reply.contactName.isNullOrBlank() || reply.contactName.trim().equals(sender.trim(), ignoreCase = true)
             if (contactMatch && messageText.contains(reply.keyword, ignoreCase = true)) {
-                return reply.replyText
+                return reply
             }
         }
         return null
+    }
+
+    private fun isAccountAllowed(sbn: StatusBarNotification, settings: AppSettings): Boolean {
+        if (settings.primaryAccountPhone.isBlank() && settings.additionalAccountPhones.isBlank()) {
+            return true
+        }
+
+        val allowedAccounts = mutableListOf<String>()
+        if (settings.primaryAccountPhone.isNotBlank()) {
+            allowedAccounts.add(settings.primaryAccountPhone.trim())
+        }
+        if (settings.additionalAccountPhones.isNotBlank()) {
+            settings.additionalAccountPhones.split(",").forEach {
+                if (it.isNotBlank()) {
+                    allowedAccounts.add(it.trim())
+                }
+            }
+        }
+
+        if (allowedAccounts.isEmpty()) return true
+
+        // Extract metadata representing the receiving channel / account from the notification
+        val textToMatch = mutableListOf<String>()
+
+        val extras = sbn.notification.extras
+        if (extras != null) {
+            // Check subText (highly likely to hold account descriptor in Multi-Account / Dual WhatsApp)
+            extras.getCharSequence(Notification.EXTRA_SUB_TEXT)?.toString()?.let { textToMatch.add(it) }
+            extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT)?.toString()?.let { textToMatch.add(it) }
+            
+            // Loop through all extras to extract any non-content, recipient-related fields
+            try {
+                for (key in extras.keySet()) {
+                    if (key != Notification.EXTRA_TITLE && 
+                        key != Notification.EXTRA_TEXT && 
+                        key != "android.title" && 
+                        key != "android.text" &&
+                        key != "android.bigText") {
+                        val value = extras.get(key)
+                        if (value is CharSequence || value is String) {
+                            textToMatch.add(value.toString())
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed reading extras on isAccountAllowed check: ${e.message}")
+            }
+        }
+
+        sbn.tag?.let { textToMatch.add(it) }
+        sbn.key?.let { textToMatch.add(it) }
+
+        // Also, include userId or package info
+        textToMatch.add("user_${sbn.userId}")
+
+        // Let's normalize and check for a match
+        // Normalization: strip spaces, dashes, and '+'
+        val normalizedAllowed = allowedAccounts.map { it.replace(" ", "").replace("+", "").replace("-", "") }
+        val normalizedHarvested = textToMatch.map { it.replace(" ", "").replace("+", "").replace("-", "") }
+
+        for (acc in normalizedAllowed) {
+            for (text in normalizedHarvested) {
+                if (text.contains(acc, ignoreCase = true)) {
+                    Log.d(TAG, "Confirmed: receiving notification matched allowed account $acc")
+                    return true
+                }
+            }
+        }
+
+        // Extremely critical fallback: if we couldn't harvest ANY recipient-specific indicators, 
+        // OR the harvested indices are completely void of any phone number or custom labels, 
+        // we shouldn't block. This is because on devices running a single WhatsApp instance, 
+        // no recipient subText/label is injected by OS or WhatsApp, so checking would always fail!
+        // So, let's check if the harvested list has any digits or subtexts resembling phone numbers or labels.
+        // If there's no dual identifier, we return true as a safe fallback.
+        val hasAnyNumericMetadata = normalizedHarvested.any { text ->
+            // Check if any harvested text contains a sequence of 5 or more digits (like a partial phone number or ID)
+            text.any { it.isDigit() } && text.filter { it.isDigit() }.length >= 5
+        }
+
+        if (!hasAnyNumericMetadata) {
+            Log.d(TAG, "No specific recipient phone Metadata found in notification. Safe fallback: permitting.")
+            return true
+        }
+
+        Log.e(TAG, "Blocked notification: did not match any allowed receiving accounts ($allowedAccounts). Metadata fields obtained: $textToMatch")
+        return false
+    }
+
+    private fun isRuleTargetAccountAllowed(sbn: StatusBarNotification, reply: CustomReplyEntity, title: String, rawText: String, settings: AppSettings): Boolean {
+        if (!isAccountAllowed(sbn, settings)) return false
+
+        val target = reply.targetAccount
+        if (target.isNullOrBlank()) return true
+
+        val normTarget = target.trim().replace(" ", "").replace("+", "").replace("-", "")
+        
+        // Match target against the harvested text for this notification
+        val textToMatch = mutableListOf<String>()
+
+        val extras = sbn.notification.extras
+        if (extras != null) {
+            extras.getCharSequence(Notification.EXTRA_SUB_TEXT)?.toString()?.let { textToMatch.add(it) }
+            extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT)?.toString()?.let { textToMatch.add(it) }
+            try {
+                for (key in extras.keySet()) {
+                    if (key != Notification.EXTRA_TITLE && 
+                        key != Notification.EXTRA_TEXT && 
+                        key != "android.title" && 
+                        key != "android.text" &&
+                        key != "android.bigText") {
+                        val value = extras.get(key)
+                        if (value is CharSequence || value is String) {
+                            textToMatch.add(value.toString())
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed reading extras on target check: ${e.message}")
+            }
+        }
+
+        sbn.tag?.let { textToMatch.add(it) }
+        sbn.key?.let { textToMatch.add(it) }
+        textToMatch.add("user_${sbn.userId}")
+
+        val normalizedHarvested = textToMatch.map { it.replace(" ", "").replace("+", "").replace("-", "") }
+
+        for (text in normalizedHarvested) {
+            if (text.contains(normTarget, ignoreCase = true)) {
+                return true
+            }
+        }
+        
+        return false
     }
 
     private fun replyToNotification(sbn: StatusBarNotification, replyMessage: String): Boolean {

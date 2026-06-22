@@ -7,6 +7,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -66,6 +67,7 @@ fun RepliesScreen(
             } else {
                 reply.keyword.contains(searchQuery, ignoreCase = true) ||
                 (reply.contactName?.contains(searchQuery, ignoreCase = true) ?: false) ||
+                (reply.targetAccount?.contains(searchQuery, ignoreCase = true) ?: false) ||
                 reply.replyText.contains(searchQuery, ignoreCase = true)
             }
             
@@ -144,7 +146,7 @@ fun RepliesScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
                 )
                 
-                androidx.compose.foundation.lazy.LazyRow(
+                LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
                 ) {
@@ -327,61 +329,129 @@ fun RepliesScreen(
                                     modifier = Modifier.weight(1f),
                                     verticalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
-                                    Row(
+                                    LazyRow(
                                         horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                        verticalAlignment = Alignment.CenterVertically
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp)
                                     ) {
                                         // Keyword Tag Display
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(6.dp))
-                                                .background(
-                                                    if (reply.isEnabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                                                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
-                                                )
-                                                .padding(horizontal = 8.dp, vertical = 4.dp)
-                                        ) {
-                                            Text(
-                                                text = "${labels.containsTag}: ${reply.keyword}",
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 11.sp,
-                                                color = if (reply.isEnabled) MaterialTheme.colorScheme.primary
-                                                else MaterialTheme.colorScheme.outline
-                                            )
-                                        }
-
-                                        // Contact Tag Display
-                                        if (!reply.contactName.isNullOrBlank()) {
+                                        item {
                                             Box(
                                                 modifier = Modifier
                                                     .clip(RoundedCornerShape(6.dp))
                                                     .background(
-                                                        if (reply.isEnabled) MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f)
+                                                        if (reply.isEnabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
                                                         else MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
                                                     )
                                                     .padding(horizontal = 8.dp, vertical = 4.dp)
                                             ) {
                                                 Text(
-                                                    text = "${labels.contactSpecificOnly}${reply.contactName}",
+                                                    text = "${labels.containsTag}: ${reply.keyword}",
                                                     fontWeight = FontWeight.Bold,
-                                                    fontSize = 11.sp,
-                                                    color = if (reply.isEnabled) MaterialTheme.colorScheme.secondary
+                                                    fontSize = 10.sp,
+                                                    color = if (reply.isEnabled) MaterialTheme.colorScheme.primary
                                                     else MaterialTheme.colorScheme.outline
                                                 )
                                             }
-                                        } else {
+                                        }
+
+                                        // Trigger Type Badge display
+                                        item {
+                                            val triggerLabel = when (reply.triggerType) {
+                                                "CALL_ACTIVE" -> if (settings.appLanguage == "en") "📞 Active Call" else "📞 رنين مكالمة"
+                                                "CALL_MISSED" -> if (settings.appLanguage == "en") "❌ Missed Call" else "❌ مكالمة فائتة"
+                                                else -> if (settings.appLanguage == "en") "💬 Chat" else "💬 دردشة"
+                                            }
                                             Box(
                                                 modifier = Modifier
                                                     .clip(RoundedCornerShape(6.dp))
-                                                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                                                    .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.12f))
                                                     .padding(horizontal = 8.dp, vertical = 4.dp)
                                             ) {
                                                 Text(
-                                                    text = labels.appliesToAll,
-                                                    fontWeight = FontWeight.Medium,
-                                                    fontSize = 11.sp,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                                                    text = triggerLabel,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 10.sp,
+                                                    color = MaterialTheme.colorScheme.tertiary
                                                 )
+                                            }
+                                        }
+
+                                        // Reply Type Badge Display
+                                        item {
+                                            val typeLabel = if (reply.replyType == "VOICE") {
+                                                if (settings.appLanguage == "en") "🎙️ Voice Spoken" else "🎙️ رسالة صوتية"
+                                            } else {
+                                                if (settings.appLanguage == "en") "📝 Text" else "📝 رد نصي"
+                                            }
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(6.dp))
+                                                    .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f))
+                                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                                            ) {
+                                                Text(
+                                                    text = typeLabel,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 10.sp,
+                                                    color = MaterialTheme.colorScheme.secondary
+                                                )
+                                            }
+                                        }
+
+                                        // Target Account Tag
+                                        if (!reply.targetAccount.isNullOrBlank()) {
+                                            item {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(6.dp))
+                                                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))
+                                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                                ) {
+                                                    Text(
+                                                        text = "${if (settings.appLanguage == "en") "Account" else "حساب"}: ${reply.targetAccount}",
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 10.sp,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        // Contact Tag Display
+                                        item {
+                                            if (!reply.contactName.isNullOrBlank()) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(6.dp))
+                                                        .background(
+                                                            if (reply.isEnabled) MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f)
+                                                            else MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)
+                                                        )
+                                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                                ) {
+                                                    Text(
+                                                        text = "${labels.contactSpecificOnly}${reply.contactName}",
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 10.sp,
+                                                        color = if (reply.isEnabled) MaterialTheme.colorScheme.secondary
+                                                        else MaterialTheme.colorScheme.outline
+                                                    )
+                                                }
+                                            } else {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(6.dp))
+                                                        .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                                ) {
+                                                    Text(
+                                                        text = labels.appliesToAll,
+                                                        fontWeight = FontWeight.Medium,
+                                                        fontSize = 10.sp,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                                                    )
+                                                }
                                             }
                                         }
                                     }
@@ -412,6 +482,9 @@ fun RepliesScreen(
         var keyword by remember { mutableStateOf("") }
         var replyText by remember { mutableStateOf("") }
         var contactName by remember { mutableStateOf(prefilledContact ?: "") }
+        var triggerType by remember { mutableStateOf("CHAT") } // "CHAT", "CALL_ACTIVE", "CALL_MISSED"
+        var replyType by remember { mutableStateOf("TEXT") } // "TEXT", "VOICE"
+        var targetAccount by remember { mutableStateOf("") }
         var isError by remember { mutableStateOf(false) }
 
         AlertDialog(
@@ -421,12 +494,17 @@ fun RepliesScreen(
             },
             title = { Text(labels.addRuleTitle) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     Text(
                         text = labels.addRuleSubtitle,
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+
+                    // Keyword Trigger Input
                     TextField(
                         value = keyword,
                         onValueChange = { keyword = it },
@@ -435,6 +513,47 @@ fun RepliesScreen(
                         modifier = Modifier.fillMaxWidth().testTag("add_keyword_input"),
                         singleLine = true
                     )
+
+                    // Trigger Type chips
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(labels.ruleTriggerTypeLabel, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            FilterChip(
+                                selected = triggerType == "CHAT",
+                                onClick = { triggerType = "CHAT" },
+                                label = { Text(labels.triggerChat) }
+                            )
+                            FilterChip(
+                                selected = triggerType == "CALL_ACTIVE",
+                                onClick = { triggerType = "CALL_ACTIVE" },
+                                label = { Text(labels.triggerCallActive) }
+                            )
+                            FilterChip(
+                                selected = triggerType == "CALL_MISSED",
+                                onClick = { triggerType = "CALL_MISSED" },
+                                label = { Text(labels.triggerCallMissed) }
+                            )
+                        }
+                    }
+
+                    // Reply Delivery Type chips
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(labels.ruleReplyTypeLabel, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilterChip(
+                                selected = replyType == "TEXT",
+                                onClick = { replyType = "TEXT" },
+                                label = { Text(labels.replyTypeText) }
+                            )
+                            FilterChip(
+                                selected = replyType == "VOICE",
+                                onClick = { replyType = "VOICE" },
+                                label = { Text(labels.replyTypeVoice) }
+                            )
+                        }
+                    }
+
+                    // Filtering parameters (Contact Specific & Multi Accounts specific)
                     TextField(
                         value = contactName,
                         onValueChange = { contactName = it },
@@ -443,6 +562,16 @@ fun RepliesScreen(
                         modifier = Modifier.fillMaxWidth().testTag("add_contact_input"),
                         singleLine = true
                     )
+
+                    TextField(
+                        value = targetAccount,
+                        onValueChange = { targetAccount = it },
+                        label = { Text(labels.ruleTargetAccountLabel) },
+                        placeholder = { Text(labels.ruleTargetAccountDesc) },
+                        modifier = Modifier.fillMaxWidth().testTag("add_target_account_input"),
+                        singleLine = true
+                    )
+
                     TextField(
                         value = replyText,
                         onValueChange = { replyText = it },
@@ -451,6 +580,7 @@ fun RepliesScreen(
                         modifier = Modifier.fillMaxWidth().testTag("add_reply_input"),
                         minLines = 3
                     )
+
                     if (isError) {
                         Text(
                             text = labels.fieldsRequiredError,
@@ -469,7 +599,10 @@ fun RepliesScreen(
                             viewModel.addReply(
                                 keyword = keyword.trim(),
                                 replyText = replyText.trim(),
-                                contactName = contactName.trim().ifEmpty { null }
+                                contactName = contactName.trim().ifEmpty { null },
+                                triggerType = triggerType,
+                                replyType = replyType,
+                                targetAccount = targetAccount.trim().ifEmpty { null }
                             )
                             showAddDialog = false
                             viewModel.clearPrefilledContact()
@@ -496,13 +629,19 @@ fun RepliesScreen(
         var keyword by remember { mutableStateOf(reply.keyword) }
         var replyText by remember { mutableStateOf(reply.replyText) }
         var contactName by remember { mutableStateOf(reply.contactName ?: "") }
+        var triggerType by remember { mutableStateOf(reply.triggerType) }
+        var replyType by remember { mutableStateOf(reply.replyType) }
+        var targetAccount by remember { mutableStateOf(reply.targetAccount ?: "") }
         var isError by remember { mutableStateOf(false) }
 
         AlertDialog(
             onDismissRequest = { editingReply = null },
             title = { Text(labels.editRuleTitle) },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     TextField(
                         value = keyword,
                         onValueChange = { keyword = it },
@@ -510,6 +649,46 @@ fun RepliesScreen(
                         modifier = Modifier.fillMaxWidth().testTag("edit_keyword_input"),
                         singleLine = true
                     )
+
+                    // Trigger Type selection
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(labels.ruleTriggerTypeLabel, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            FilterChip(
+                                selected = triggerType == "CHAT",
+                                onClick = { triggerType = "CHAT" },
+                                label = { Text(labels.triggerChat) }
+                            )
+                            FilterChip(
+                                selected = triggerType == "CALL_ACTIVE",
+                                onClick = { triggerType = "CALL_ACTIVE" },
+                                label = { Text(labels.triggerCallActive) }
+                            )
+                            FilterChip(
+                                selected = triggerType == "CALL_MISSED",
+                                onClick = { triggerType = "CALL_MISSED" },
+                                label = { Text(labels.triggerCallMissed) }
+                            )
+                        }
+                    }
+
+                    // Reply Delivery Type selection
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(labels.ruleReplyTypeLabel, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilterChip(
+                                selected = replyType == "TEXT",
+                                onClick = { replyType = "TEXT" },
+                                label = { Text(labels.replyTypeText) }
+                            )
+                            FilterChip(
+                                selected = replyType == "VOICE",
+                                onClick = { replyType = "VOICE" },
+                                label = { Text(labels.replyTypeVoice) }
+                            )
+                        }
+                    }
+
                     TextField(
                         value = contactName,
                         onValueChange = { contactName = it },
@@ -518,6 +697,16 @@ fun RepliesScreen(
                         modifier = Modifier.fillMaxWidth().testTag("edit_contact_input"),
                         singleLine = true
                     )
+
+                    TextField(
+                        value = targetAccount,
+                        onValueChange = { targetAccount = it },
+                        label = { Text(labels.ruleTargetAccountLabel) },
+                        placeholder = { Text(labels.ruleTargetAccountDesc) },
+                        modifier = Modifier.fillMaxWidth().testTag("edit_target_account_input"),
+                        singleLine = true
+                    )
+
                     TextField(
                         value = replyText,
                         onValueChange = { replyText = it },
@@ -525,6 +714,7 @@ fun RepliesScreen(
                         modifier = Modifier.fillMaxWidth().testTag("edit_reply_input"),
                         minLines = 3
                     )
+
                     if (isError) {
                         Text(
                             text = labels.fieldsRequiredError,
@@ -566,7 +756,10 @@ fun RepliesScreen(
                                         reply.copy(
                                             keyword = keyword.trim(),
                                             replyText = replyText.trim(),
-                                            contactName = contactName.trim().ifEmpty { null }
+                                            contactName = contactName.trim().ifEmpty { null },
+                                            triggerType = triggerType,
+                                            replyType = replyType,
+                                            targetAccount = targetAccount.trim().ifEmpty { null }
                                         )
                                     )
                                     editingReply = null

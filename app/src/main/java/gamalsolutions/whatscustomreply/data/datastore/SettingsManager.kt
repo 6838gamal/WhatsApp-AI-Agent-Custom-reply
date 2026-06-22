@@ -33,7 +33,9 @@ data class AppSettings(
     val mediaVolume: Int,
     val ringerMode: Int,
     val dismissNotificationsEnabled: Boolean,
-    val voiceReplyEnabled: Boolean
+    val voiceReplyEnabled: Boolean,
+    val primaryAccountPhone: String,
+    val additionalAccountPhones: String
 )
 
 class SettingsManager(private val context: Context) {
@@ -63,6 +65,8 @@ class SettingsManager(private val context: Context) {
         val KEY_RINGER_MODE = intPreferencesKey("ringer_mode")
         val KEY_DISMISS_NOTIFICATIONS_ENABLED = booleanPreferencesKey("dismiss_notifications_enabled")
         val KEY_VOICE_REPLY_ENABLED = booleanPreferencesKey("voice_reply_enabled")
+        val KEY_PRIMARY_ACCOUNT_PHONE = stringPreferencesKey("primary_account_phone")
+        val KEY_ADDITIONAL_ACCOUNT_PHONES = stringPreferencesKey("additional_account_phones")
     }
 
     val settingsFlow: Flow<AppSettings> = context.dataStore.data.map { preferences ->
@@ -90,7 +94,9 @@ class SettingsManager(private val context: Context) {
             mediaVolume = preferences[KEY_MEDIA_VOLUME] ?: 60,
             ringerMode = preferences[KEY_RINGER_MODE] ?: 2, // Normal (0 = Silent, 1 = Vibrate, 2 = Normal)
             dismissNotificationsEnabled = preferences[KEY_DISMISS_NOTIFICATIONS_ENABLED] ?: false,
-            voiceReplyEnabled = preferences[KEY_VOICE_REPLY_ENABLED] ?: false
+            voiceReplyEnabled = preferences[KEY_VOICE_REPLY_ENABLED] ?: false,
+            primaryAccountPhone = preferences[KEY_PRIMARY_ACCOUNT_PHONE] ?: "",
+            additionalAccountPhones = preferences[KEY_ADDITIONAL_ACCOUNT_PHONES] ?: ""
         )
     }
 
@@ -118,6 +124,8 @@ class SettingsManager(private val context: Context) {
     suspend fun updateRingerMode(value: Int) = set(KEY_RINGER_MODE, value)
     suspend fun updateDismissNotificationsEnabled(value: Boolean) = set(KEY_DISMISS_NOTIFICATIONS_ENABLED, value)
     suspend fun updateVoiceReplyEnabled(value: Boolean) = set(KEY_VOICE_REPLY_ENABLED, value)
+    suspend fun updatePrimaryAccountPhone(value: String) = set(KEY_PRIMARY_ACCOUNT_PHONE, value)
+    suspend fun updateAdditionalAccountPhones(value: String) = set(KEY_ADDITIONAL_ACCOUNT_PHONES, value)
 
     private suspend fun <T> set(key: Preferences.Key<T>, value: T) {
         context.dataStore.edit { preferences ->

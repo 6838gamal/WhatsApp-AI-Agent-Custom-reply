@@ -135,6 +135,21 @@ sealed class LocStrings {
     abstract val dismissNotificationsSettingDesc: String
     abstract val voiceReplyAnnounceSetting: String
     abstract val voiceReplyAnnounceSettingDesc: String
+
+    // New Account / Multi Account & Call Rule Settings
+    abstract val ruleTriggerTypeLabel: String
+    abstract val triggerChat: String
+    abstract val triggerCallActive: String
+    abstract val triggerCallMissed: String
+    abstract val ruleReplyTypeLabel: String
+    abstract val replyTypeText: String
+    abstract val replyTypeVoice: String
+    abstract val ruleTargetAccountLabel: String
+    abstract val ruleTargetAccountDesc: String
+    abstract val primaryPhoneLabel: String
+    abstract val additionalPhonesLabel: String
+    abstract val accountsSectionTitle: String
+    abstract val accountsSectionDesc: String
     
     // Modes
     abstract val modeCustom: String
@@ -274,6 +289,21 @@ object ArStrings : LocStrings() {
     override val dismissNotificationsSettingDesc = "إلغاء الإشعارات تلقائياً من شاشة القفل والمنبثقات بمجرد الرد عليها، لتواصل عملك دون انقطاع، مع الحفاظ على كافة التفاصيل مسجلة داخل هذا التطبيق."
     override val voiceReplyAnnounceSetting = "الردود الصوتية وقراءة التقارير تلقائياً"
     override val voiceReplyAnnounceSettingDesc = "استماع مباشر لنصوص الردود المبعوثة تلقائياً وكذا التنبيهات الصوتية (TTS) دون الحاجة لفتح شاشة الهاتف أو لمسه."
+
+    // New Account / Multi Account & Call Rule Settings (Arabic)
+    override val ruleTriggerTypeLabel = "نوع تشغيل القاعدة"
+    override val triggerChat = "رسالة نصية واردة (دردشة)"
+    override val triggerCallActive = "أثناء رنين المكالمة (نشط)"
+    override val triggerCallMissed = "المكالمات الفائتة/المفقودة"
+    override val ruleReplyTypeLabel = "نوع الرد للمرسل"
+    override val replyTypeText = "رد نصي مكتوب (نص)"
+    override val replyTypeVoice = "رد صوتي (رسالة صوتية مسموعة)"
+    override val ruleTargetAccountLabel = "حساب الهاتف المستهدف (فلتر اختياري)"
+    override val ruleTargetAccountDesc = "اتركه فارغاً ليطبق على جميع الحسابات المفعلة"
+    override val primaryPhoneLabel = "رقم حساب الواتساب الأساسي"
+    override val additionalPhonesLabel = "أرقام الحسابات المتعددة الإضافية (مفصولة بفاصلة)"
+    override val accountsSectionTitle = "إدارة وتصفية الحسابات المتعددة"
+    override val accountsSectionDesc = "حدد أرقام حسابات واتساب النشطة لديك ليتعامل النظام معها فقط ويتجاهل ما سواها من حسابات غير تابعة لك."
     
     override val modeCustom = "القواعد والكلمات المفتاحية"
     override val modeCustomDesc = "الاعتماد بالكامل على مطابقة الكلمات المفتاحية والقواعد اليدوية."
@@ -412,6 +442,21 @@ object EnStrings : LocStrings() {
     override val dismissNotificationsSettingDesc = "Instantly clear WhatsApp popups and overlay banners after replying to them. Focus on phone use while keeping full activity stored in Logs."
     override val voiceReplyAnnounceSetting = "Text-to-Speech Spoken Announcements"
     override val voiceReplyAnnounceSettingDesc = "Listen directly to real-time audio announcements of incoming events and sent automated replies, keeping your focus 100% off-screen."
+
+    // New Account / Multi Account & Call Rule Settings (English)
+    override val ruleTriggerTypeLabel = "Rule Trigger Type"
+    override val triggerChat = "Incoming Chat Message"
+    override val triggerCallActive = "On Active Call Ringing"
+    override val triggerCallMissed = "On Missed Calls"
+    override val ruleReplyTypeLabel = "Reply Mode Type"
+    override val replyTypeText = "Plain Written Text"
+    override val replyTypeVoice = "Voice Spoken Reply (TTS)"
+    override val ruleTargetAccountLabel = "Target Phone Account (Optional)"
+    override val ruleTargetAccountDesc = "Leave blank to apply to all configured accounts"
+    override val primaryPhoneLabel = "Primary WhatsApp Account Phone"
+    override val additionalPhonesLabel = "Additional Account Phones (Comma-separated)"
+    override val accountsSectionTitle = "Manage Multi-Accounts & Filters"
+    override val accountsSectionDesc = "Define active WhatsApp line numbers so the system filters other unsupported accounts cleanly."
     
     override val modeCustom = "Keyword Matching Rules"
     override val modeCustomDesc = "Relies entirely on matching keywords."
