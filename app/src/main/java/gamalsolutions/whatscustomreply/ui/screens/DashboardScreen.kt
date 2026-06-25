@@ -6,6 +6,7 @@ import android.content.Intent
 import android.provider.Settings
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -67,505 +68,603 @@ fun DashboardScreen(
         }
     }
 
-    val scrollState = rememberScrollState()
+    var activeSubScreen by remember { mutableStateOf<String?>(null) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Futuristic Indigo/Violet Banner
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(140.dp)
-                .clip(RoundedCornerShape(24.dp))
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary,
-                            MaterialTheme.colorScheme.tertiary
-                        )
-                    )
-                )
-                .padding(20.dp),
-            contentAlignment = Alignment.CenterStart
-        ) {
-            Column {
-                Text(
-                    text = labels.dashboardTitle,
-                    color = Color.White,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = labels.dashboardSubtitle,
-                    color = Color.White.copy(alpha = 0.82f),
-                    fontSize = 12.sp
-                )
+    AnimatedContent(
+        targetState = activeSubScreen,
+        transitionSpec = {
+            slideInHorizontally { width -> width } + fadeIn() togetherWith
+                    slideOutHorizontally { width -> -width } + fadeOut()
+        },
+        label = "DashboardSubScreenTransition"
+    ) { screen ->
+        when (screen) {
+            "BI" -> {
+                BiDashboardView(viewModel = viewModel, onBack = { activeSubScreen = null })
             }
-        }
+            "DB_EXPLORER" -> {
+                DatabaseExplorerView(viewModel = viewModel, onBack = { activeSubScreen = null })
+            }
+            "DEV_CONSOLE" -> {
+                DeveloperConsoleView(viewModel = viewModel, onBack = { activeSubScreen = null })
+            }
+            else -> {
+                val scrollState = rememberScrollState()
 
-        // 1. Notification Access Warning Card
-        if (!isPermissionGranted) {
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer
-                ),
-                shape = RoundedCornerShape(20.dp),
-                modifier = Modifier.fillMaxWidth().testTag("permission_warning_card")
-            ) {
                 Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(scrollState)
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Warning,
-                            contentDescription = "Warning Notification Access",
-                            tint = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                        Text(
-                            text = labels.notificationAccessHeader,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onErrorContainer,
-                            fontSize = 16.sp
-                        )
-                    }
-                    Text(
-                        text = labels.notificationAccessBody,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        fontSize = 13.sp
-                    )
-                    Button(
-                        onClick = {
-                            val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
-                            context.startActivity(intent)
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error,
-                            contentColor = Color.White
-                        ),
-                        modifier = Modifier.fillMaxWidth().testTag("grant_permission_button")
-                    ) {
-                        Text(labels.grantPermission, fontWeight = FontWeight.SemiBold)
-                    }
-                }
-            }
-        }
-
-        // 2. Global Status Toggle Card
-        Card(
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
-            )
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(
-                                if (settings.isServiceEnabled) MaterialTheme.colorScheme.primaryContainer
-                                else MaterialTheme.colorScheme.surfaceVariant
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = if (settings.isServiceEnabled) Icons.Filled.CheckCircle else Icons.Filled.Pause,
-                            contentDescription = "Service Status Icon",
-                            tint = if (settings.isServiceEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
-                        )
-                    }
-                    Column {
-                        Text(
-                            text = labels.appName,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
-                        )
-                        Text(
-                            text = if (settings.isServiceEnabled) labels.globalStatusOn else labels.globalStatusOff,
-                            fontSize = 13.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                Switch(
-                    checked = settings.isServiceEnabled,
-                    onCheckedChange = { viewModel.updateServiceEnabled(it) },
-                    modifier = Modifier.testTag("service_toggle_switch")
-                )
-            }
-        }
-
-        // 3. Operational Mode Settings Displays
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Card(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable { onNavigateToReplies() },
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
-                ),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Chat,
-                        contentDescription = "Custom Keywords",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = labels.rules,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp
-                    )
-                    Text(
-                        text = labels.rulesBuilderDesc,
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            Card(
-                modifier = Modifier
-                    .weight(1f)
-                    .clickable { onNavigateToGemini() },
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
-                ),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Code,
-                        contentDescription = "API Settings",
-                        tint = MaterialTheme.colorScheme.secondary
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = labels.gemini,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp
-                    )
-                    Text(
-                        text = labels.geminiSettingsDesc,
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-
-        // Active Mode Card
-        Card(
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
-            )
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = labels.activeMode,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = when (settings.replyMode) {
-                            "CUSTOM" -> Icons.Filled.Settings
-                            "API" -> Icons.Filled.Code
-                            else -> Icons.Filled.SettingsInputComposite
-                        },
-                        contentDescription = "Active Mode Icon",
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                    Text(
-                        text = when (settings.replyMode) {
-                            "CUSTOM" -> labels.modeCustom
-                            "API" -> labels.modeGemini
-                            else -> labels.modeHybrid
-                        },
-                        fontWeight = FontWeight.Black,
-                        fontSize = 16.sp,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-                Text(
-                    text = when (settings.replyMode) {
-                        "CUSTOM" -> labels.modeCustomDesc
-                        "API" -> labels.modeGeminiDesc
-                        else -> labels.modeHybridDesc
-                    },
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                )
-            }
-        }
-
-        // Statistics Overview Cards
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Card(
-                modifier = Modifier.weight(1f),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Inbox,
-                        contentDescription = "Incoming messages icon",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Column {
-                        Text(labels.metricsTotalReplies, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("$totalLogs", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                    }
-                }
-            }
-
-            Card(
-                modifier = Modifier.weight(1f),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Reply,
-                        contentDescription = "Success replies icon",
-                        tint = MaterialTheme.colorScheme.tertiary
-                    )
-                    Column {
-                        Text(labels.metricsSuccessfulReplies, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("$successLogs", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                    }
-                }
-            }
-        }
-
-        // 4. Developer Playground / Simulation Card
-        Card(
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            ),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.DeveloperMode,
-                        contentDescription = "Developer Playground",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = labels.simulationHeader,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp
-                    )
-                }
-                Text(
-                    text = labels.simulationBody,
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                var testSender by remember { mutableStateOf("John Doe") }
-                var testMsg by remember { mutableStateOf("Hello! Are you available to chat?") }
-                var simulationResponse by remember { mutableStateOf<String?>(null) }
-                var isSimulating by remember { mutableStateOf(false) }
-
-                TextField(
-                    value = testSender,
-                    onValueChange = { testSender = it },
-                    label = { Text(labels.simSenderLabel) },
-                    modifier = Modifier.fillMaxWidth().testTag("sim_sender_input"),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surface,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                    )
-                )
-
-                TextField(
-                    value = testMsg,
-                    onValueChange = { testMsg = it },
-                    label = { Text(labels.simMessageLabel) },
-                    modifier = Modifier.fillMaxWidth().testTag("sim_message_input"),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surface,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                    )
-                )
-
-                Button(
-                    onClick = {
-                        isSimulating = true
-                        simulationResponse = if (settings.appLanguage == "en") "Processing rules..." else "جاري فحص القواعد والمطابقة..."
-                        scope.launch {
-                            // Run the exact processing pipeline inside the service manually in a safe simulated run
-                            val repliesList = viewModel.replies.value
-                            val enabledReplies = repliesList.filter { it.isEnabled }
-                            var matched: String? = null
-                            for (r in enabledReplies) {
-                                val contactMatch = r.contactName.isNullOrBlank() || r.contactName.trim().equals(testSender.trim(), ignoreCase = true)
-                                if (contactMatch && testMsg.contains(r.keyword, ignoreCase = true)) {
-                                    matched = r.replyText
-                                    break
-                                }
-                            }
-
-                            var outputText = if (settings.appLanguage == "en") "No reply found matching current Rules/Modes." else "لم يتم العثور على رد يطابق القواعد الحالية."
-                            var logMode = "CUSTOM (SIMULATED)"
-                            var transactionSuccess = false
-
-                            if (settings.replyMode == "CUSTOM") {
-                                if (matched != null) {
-                                    outputText = matched
-                                    transactionSuccess = true
-                                }
-                            } else if (settings.replyMode == "API") {
-                                logMode = "CUSTOM_API (SIMULATED)"
-                                simulationResponse = if (settings.appLanguage == "en") "Invoking Custom API..." else "جاري استدعاء رابط واجهة البيانات..."
-                                val apiResult = viewModel.customApiRepository.generateReply(
-                                    apiUrl = settings.apiUrl,
-                                    apiMethod = settings.apiMethod,
-                                    apiHeaders = settings.apiHeaders,
-                                    apiBodyTemplate = settings.apiBodyTemplate,
-                                    apiResponsePath = settings.apiResponsePath,
-                                    sender = testSender,
-                                    message = testMsg
-                                )
-                                apiResult.onSuccess { text ->
-                                    outputText = text
-                                    transactionSuccess = true
-                                }.onFailure { e ->
-                                    outputText = "API Error: ${e.message}"
-                                }
-                            } else if (settings.replyMode == "HYBRID") {
-                                if (matched != null) {
-                                    outputText = matched
-                                    transactionSuccess = true
-                                    logMode = "CUSTOM (SIMULATED)"
-                                } else {
-                                    logMode = "CUSTOM_API (SIMULATED)"
-                                    simulationResponse = if (settings.appLanguage == "en") "Keyword failed. Invoking Custom API fallback..." else "لم يتم مطابقة الكلمة. جاري الاتصال بواجهة البيانات..."
-                                    val apiResult = viewModel.customApiRepository.generateReply(
-                                        apiUrl = settings.apiUrl,
-                                        apiMethod = settings.apiMethod,
-                                        apiHeaders = settings.apiHeaders,
-                                        apiBodyTemplate = settings.apiBodyTemplate,
-                                        apiResponsePath = settings.apiResponsePath,
-                                        sender = testSender,
-                                        message = testMsg
-                                    )
-                                    apiResult.onSuccess { text ->
-                                        outputText = text
-                                        transactionSuccess = true
-                                    }.onFailure { e ->
-                                        outputText = "API Fallback Error: ${e.message}"
-                                    }
-                                }
-                            }
-
-                            // Simulation delay
-                            delay(500)
-                            isSimulating = false
-                            simulationResponse = if (settings.appLanguage == "en") "Simulated Reply: \"$outputText\"" else "الرد التلقائي: \"$outputText\""
-
-                            // Register inside DB log for visual logs/statistics immediately!
-                            viewModel.insertLog(
-                                AutoReplyLogEntity(
-                                    senderName = testSender,
-                                    messageText = testMsg,
-                                    replyText = outputText,
-                                    mode = logMode,
-                                    isSuccess = transactionSuccess
-                                )
-                            )
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth().testTag("simulate_button"),
-                    enabled = !isSimulating
-                ) {
-                    if (isSimulating) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(if (settings.appLanguage == "en") "Simulating..." else "جاري المحاكاة...")
-                    } else {
-                        Text(labels.simulateBtn)
-                    }
-                }
-
-                simulationResponse?.let { res ->
+                    // Futuristic Indigo/Violet Banner
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(MaterialTheme.colorScheme.surface)
-                            .padding(12.dp)
+                            .height(140.dp)
+                            .clip(RoundedCornerShape(24.dp))
+                            .background(
+                                Brush.horizontalGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.primary,
+                                        MaterialTheme.colorScheme.tertiary
+                                    )
+                                )
+                            )
+                            .padding(20.dp),
+                        contentAlignment = Alignment.CenterStart
                     ) {
-                        Text(
-                            text = res,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.testTag("simulation_result_text")
+                        Column {
+                            Text(
+                                text = labels.dashboardTitle,
+                                color = Color.White,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = labels.dashboardSubtitle,
+                                color = Color.White.copy(alpha = 0.82f),
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+
+                    // 1. Notification Access Warning Card
+                    if (!isPermissionGranted) {
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer
+                            ),
+                            shape = RoundedCornerShape(20.dp),
+                            modifier = Modifier.fillMaxWidth().testTag("permission_warning_card")
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Warning,
+                                        contentDescription = "Warning Notification Access",
+                                        tint = MaterialTheme.colorScheme.onErrorContainer
+                                    )
+                                    Text(
+                                        text = labels.notificationAccessHeader,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onErrorContainer,
+                                        fontSize = 16.sp
+                                    )
+                                }
+                                Text(
+                                    text = labels.notificationAccessBody,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    fontSize = 13.sp
+                                )
+                                Button(
+                                    onClick = {
+                                        val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+                                        context.startActivity(intent)
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.error,
+                                        contentColor = Color.White
+                                    ),
+                                    modifier = Modifier.fillMaxWidth().testTag("grant_permission_button")
+                                ) {
+                                    Text(labels.grantPermission, fontWeight = FontWeight.SemiBold)
+                                }
+                            }
+                        }
+                    }
+
+                    // 2. Global Status Toggle Card
+                    Card(
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
                         )
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(20.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(
+                                            if (settings.isServiceEnabled) MaterialTheme.colorScheme.primaryContainer
+                                            else MaterialTheme.colorScheme.surfaceVariant
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = if (settings.isServiceEnabled) Icons.Filled.CheckCircle else Icons.Filled.Pause,
+                                        contentDescription = "Service Status Icon",
+                                        tint = if (settings.isServiceEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                                    )
+                                }
+                                Column {
+                                    Text(
+                                        text = labels.appName,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 16.sp
+                                    )
+                                    Text(
+                                        text = if (settings.isServiceEnabled) labels.globalStatusOn else labels.globalStatusOff,
+                                        fontSize = 13.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                            Switch(
+                                checked = settings.isServiceEnabled,
+                                onCheckedChange = { viewModel.updateServiceEnabled(it) },
+                                modifier = Modifier.testTag("service_toggle_switch")
+                            )
+                        }
+                    }
+
+                    // 3. Operational Mode Settings Displays
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Card(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { onNavigateToReplies() },
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
+                            ),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Chat,
+                                    contentDescription = "Custom Keywords",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = labels.rules,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp
+                                )
+                                Text(
+                                    text = labels.rulesBuilderDesc,
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        Card(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { onNavigateToGemini() },
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
+                            ),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Code,
+                                    contentDescription = "API Settings",
+                                    tint = MaterialTheme.colorScheme.secondary
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = labels.gemini,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp
+                                )
+                                Text(
+                                    text = labels.geminiSettingsDesc,
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
+                    // Active Mode Card
+                    Card(
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = labels.activeMode,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = when (settings.replyMode) {
+                                        "CUSTOM" -> Icons.Filled.Settings
+                                        "API" -> Icons.Filled.Code
+                                        else -> Icons.Filled.SettingsInputComposite
+                                    },
+                                    contentDescription = "Active Mode Icon",
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Text(
+                                    text = when (settings.replyMode) {
+                                        "CUSTOM" -> labels.modeCustom
+                                        "API" -> labels.modeGemini
+                                        else -> labels.modeHybrid
+                                    },
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 16.sp,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                            Text(
+                                text = when (settings.replyMode) {
+                                    "CUSTOM" -> labels.modeCustomDesc
+                                    "API" -> labels.modeGeminiDesc
+                                    else -> labels.modeHybridDesc
+                                },
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                            )
+                        }
+                    }
+
+                    // --- WhatsApp Business Intelligence & Developer Tools Launchers ---
+                    Text(
+                        text = if (settings.appLanguage == "en") "Intelligence & Diagnostics Hub" else "بوابة ذكاء الأعمال والتحليلات",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Card(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { activeSubScreen = "BI" }
+                                .testTag("launch_bi_button"),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)),
+                            shape = RoundedCornerShape(16.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Icon(Icons.Filled.Analytics, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
+                                Text(
+                                    text = if (settings.appLanguage == "en") "BI Hub" else "ذكاء الأعمال",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+
+                        Card(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { activeSubScreen = "DB_EXPLORER" }
+                                .testTag("launch_db_button"),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.25f)),
+                            shape = RoundedCornerShape(16.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f))
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Icon(Icons.Filled.Storage, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(28.dp))
+                                Text(
+                                    text = if (settings.appLanguage == "en") "DB Explorer" else "مستكشف البيانات",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+
+                        Card(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { activeSubScreen = "DEV_CONSOLE" }
+                                .testTag("launch_dev_button"),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.25f)),
+                            shape = RoundedCornerShape(16.dp),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f))
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Icon(Icons.Filled.Terminal, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(28.dp))
+                                Text(
+                                    text = if (settings.appLanguage == "en") "Dev Console" else "منصة المطور",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+
+                    // Statistics Overview Cards
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Card(
+                            modifier = Modifier.weight(1f),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Inbox,
+                                    contentDescription = "Incoming messages icon",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Column {
+                                    Text(labels.metricsTotalReplies, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("$totalLogs", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                }
+                            }
+                        }
+
+                        Card(
+                            modifier = Modifier.weight(1f),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Reply,
+                                    contentDescription = "Success replies icon",
+                                    tint = MaterialTheme.colorScheme.tertiary
+                                )
+                                Column {
+                                    Text(labels.metricsSuccessfulReplies, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text("$successLogs", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                }
+                            }
+                        }
+                    }
+
+                    // 4. Developer Playground / Simulation Card
+                    Card(
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.DeveloperMode,
+                                    contentDescription = "Developer Playground",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = labels.simulationHeader,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp
+                                )
+                            }
+                            Text(
+                                text = labels.simulationBody,
+                                fontSize = 12.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                              )
+
+                            var testSender by remember { mutableStateOf("John Doe") }
+                            var testMsg by remember { mutableStateOf("Hello! Are you available to chat?") }
+                            var simulationResponse by remember { mutableStateOf<String?>(null) }
+                            var isSimulating by remember { mutableStateOf(false) }
+
+                            TextField(
+                                value = testSender,
+                                onValueChange = { testSender = it },
+                                label = { Text(labels.simSenderLabel) },
+                                modifier = Modifier.fillMaxWidth().testTag("sim_sender_input"),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                                )
+                            )
+
+                            TextField(
+                                value = testMsg,
+                                onValueChange = { testMsg = it },
+                                label = { Text(labels.simMessageLabel) },
+                                modifier = Modifier.fillMaxWidth().testTag("sim_message_input"),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = TextFieldDefaults.colors(
+                                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                                )
+                            )
+
+                            Button(
+                                onClick = {
+                                    isSimulating = true
+                                    simulationResponse = if (settings.appLanguage == "en") "Processing rules..." else "جاري فحص القواعد والمطابقة..."
+                                    scope.launch {
+                                        // Run the exact processing pipeline inside the service manually in a safe simulated run
+                                        val repliesList = viewModel.replies.value
+                                        val enabledReplies = repliesList.filter { it.isEnabled }
+                                        var matched: String? = null
+                                        for (r in enabledReplies) {
+                                            val contactMatch = r.contactName.isNullOrBlank() || r.contactName.trim().equals(testSender.trim(), ignoreCase = true)
+                                            if (contactMatch && testMsg.contains(r.keyword, ignoreCase = true)) {
+                                                matched = r.replyText
+                                                break
+                                            }
+                                        }
+
+                                        var outputText = if (settings.appLanguage == "en") "No reply found matching current Rules/Modes." else "لم يتم العثور على رد يطابق القواعد الحالية."
+                                        var logMode = "CUSTOM (SIMULATED)"
+                                        var transactionSuccess = false
+
+                                        if (settings.replyMode == "CUSTOM") {
+                                            if (matched != null) {
+                                                outputText = matched
+                                                transactionSuccess = true
+                                            }
+                                        } else if (settings.replyMode == "API") {
+                                            logMode = "CUSTOM_API (SIMULATED)"
+                                            simulationResponse = if (settings.appLanguage == "en") "Invoking Custom API..." else "جاري استدعاء رابط واجهة البيانات..."
+                                            val apiResult = viewModel.customApiRepository.generateReply(
+                                                apiUrl = settings.apiUrl,
+                                                apiMethod = settings.apiMethod,
+                                                apiHeaders = settings.apiHeaders,
+                                                apiBodyTemplate = settings.apiBodyTemplate,
+                                                apiResponsePath = settings.apiResponsePath,
+                                                sender = testSender,
+                                                message = testMsg
+                                            )
+                                            apiResult.onSuccess { text ->
+                                                outputText = text
+                                                transactionSuccess = true
+                                            }.onFailure { e ->
+                                                outputText = "API Error: ${e.message}"
+                                            }
+                                        } else if (settings.replyMode == "HYBRID") {
+                                            if (matched != null) {
+                                                outputText = matched
+                                                transactionSuccess = true
+                                                logMode = "CUSTOM (SIMULATED)"
+                                            } else {
+                                                logMode = "CUSTOM_API (SIMULATED)"
+                                                simulationResponse = if (settings.appLanguage == "en") "Keyword failed. Invoking Custom API fallback..." else "لم يتم مطابقة الكلمة. جاري الاتصال بواجهة البيانات..."
+                                                val apiResult = viewModel.customApiRepository.generateReply(
+                                                    apiUrl = settings.apiUrl,
+                                                    apiMethod = settings.apiMethod,
+                                                    apiHeaders = settings.apiHeaders,
+                                                    apiBodyTemplate = settings.apiBodyTemplate,
+                                                    apiResponsePath = settings.apiResponsePath,
+                                                    sender = testSender,
+                                                    message = testMsg
+                                                )
+                                                apiResult.onSuccess { text ->
+                                                    outputText = text
+                                                    transactionSuccess = true
+                                                }.onFailure { e ->
+                                                    outputText = "API Fallback Error: ${e.message}"
+                                                }
+                                            }
+                                        }
+
+                                        // Simulation delay
+                                        delay(500)
+                                        isSimulating = false
+                                        simulationResponse = if (settings.appLanguage == "en") "Simulated Reply: \"$outputText\"" else "الرد التلقائي: \"$outputText\""
+
+                                        // Register inside DB log for visual logs/statistics immediately!
+                                        viewModel.insertLog(
+                                            AutoReplyLogEntity(
+                                                senderName = testSender,
+                                                messageText = testMsg,
+                                                replyText = outputText,
+                                                mode = logMode,
+                                                isSuccess = transactionSuccess
+                                            )
+                                        )
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth().testTag("simulate_button"),
+                                enabled = !isSimulating
+                            ) {
+                                if (isSimulating) {
+                                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(if (settings.appLanguage == "en") "Simulating..." else "جاري المحاكاة...")
+                                } else {
+                                    Text(labels.simulateBtn)
+                                }
+                            }
+
+                            simulationResponse?.let { res ->
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(MaterialTheme.colorScheme.surface)
+                                        .padding(12.dp)
+                                ) {
+                                    Text(
+                                        text = res,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.testTag("simulation_result_text")
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }

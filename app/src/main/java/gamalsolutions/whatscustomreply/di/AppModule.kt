@@ -27,10 +27,12 @@ val appModule = module {
     // DAOs
     single { get<AppDatabase>().customReplyDao() }
     single { get<AppDatabase>().autoReplyLogDao() }
+    single { get<AppDatabase>().systemEventDao() }
 
     // Repositories
     single { RepliesRepository(get()) }
-    single { LogsRepository(get()) }
+    single { gamalsolutions.whatscustomreply.data.repository.SystemEventsRepository(get()) }
+    single { LogsRepository(get(), get()) }
 
     // Datastore and Security SharedPreferences
     single { SettingsManager(androidContext()) }
@@ -55,5 +57,5 @@ val appModule = module {
     single { gamalsolutions.whatscustomreply.service.InteractiveVoiceHelper(androidContext()) }
 
     // ViewModel
-    viewModel { MainViewModel(get(), get(), get(), get(), get()) }
+    viewModel { MainViewModel(get(), get(), get(), get(), get(), get()) }
 }

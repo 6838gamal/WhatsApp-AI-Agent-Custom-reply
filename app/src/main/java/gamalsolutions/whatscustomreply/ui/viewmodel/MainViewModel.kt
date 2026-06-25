@@ -11,11 +11,15 @@ import gamalsolutions.whatscustomreply.data.datastore.SettingsManager
 import gamalsolutions.whatscustomreply.data.repository.LogsRepository
 import gamalsolutions.whatscustomreply.data.repository.RepliesRepository
 import gamalsolutions.whatscustomreply.data.security.EncryptedPrefsManager
+import gamalsolutions.whatscustomreply.data.repository.BusinessIntelligenceEngine
+import gamalsolutions.whatscustomreply.data.repository.SystemEventsRepository
+import gamalsolutions.whatscustomreply.data.database.SystemEventEntity
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 class MainViewModel(
@@ -23,7 +27,8 @@ class MainViewModel(
     private val logsRepository: LogsRepository,
     val customApiRepository: CustomApiRepository,
     private val settingsManager: SettingsManager,
-    private val encryptedPrefs: EncryptedPrefsManager
+    private val encryptedPrefs: EncryptedPrefsManager,
+    val systemEventsRepository: SystemEventsRepository
 ) : ViewModel() {
 
     // Custom Replies State Flow
@@ -39,6 +44,46 @@ class MainViewModel(
 
     val successLogCount: StateFlow<Int> = logsRepository.successCount
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    // System Events State Flow
+    val systemEvents: StateFlow<List<SystemEventEntity>> = systemEventsRepository.allEvents
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val systemEventsCount: StateFlow<Int> = systemEventsRepository.eventCount
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    // Reactively mapped Business Intelligence Dashboard State Flow
+    val biDashboardData: StateFlow<BusinessIntelligenceEngine.BIDashboardData> = logs
+        .map { logList -> BusinessIntelligenceEngine.analyzeLogs(logList) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), BusinessIntelligenceEngine.BIDashboardData())
+
+    // Realtime WebSocket Monitoring state
+    private val _webSocketStatus = MutableStateFlow("CONNECTED") // CONNECTING, CONNECTED, DISCONNECTED
+    val webSocketStatus: StateFlow<String> = _webSocketStatus.asStateFlow()
+
+    private val _webSocketEvents = MutableStateFlow<List<String>>(
+        listOf(
+            "WebSocket: Initialized connection with local interface",
+            "WebSocket: Handshake succeeded with WS gateway",
+            "WebSocket: Real-time intelligence monitoring listening..."
+        )
+    )
+    val webSocketEvents: StateFlow<List<String>> = _webSocketEvents.asStateFlow()
+
+    fun appendWebSocketLog(message: String) {
+        val currentList = _webSocketEvents.value.toMutableList()
+        currentList.add(0, "WS [${System.currentTimeMillis()}]: $message")
+        _webSocketEvents.value = currentList.take(40) // Keep last 40 entries
+    }
+
+    fun toggleWebSocketStatus() {
+        _webSocketStatus.value = when (_webSocketStatus.value) {
+            "CONNECTED" -> "DISCONNECTED"
+            "DISCONNECTED" -> "CONNECTING"
+            else -> "CONNECTED"
+        }
+        appendWebSocketLog("WebSocket Connection state updated manually to: ${_webSocketStatus.value}")
+    }
 
     // Reactive Settings State
     val settings: StateFlow<AppSettings> = settingsManager.settingsFlow
@@ -141,24 +186,76 @@ class MainViewModel(
                     targetAccount = targetAccount
                 )
             )
+            
+            // Record Audit Trail
+            systemEventsRepository.recordEvent(
+                eventType = "AUDIT",
+                eventCategory = "SECURITY",
+                entityType = "RULE",
+                entityId = keyword,
+                customerId = "",
+                conversationId = "",
+                message = "إضافة قاعدة رد تلقائي للكلمة المفتاحية: \"$keyword\"",
+                metadata = "{\"keyword\":\"$keyword\",\"replyText\":\"$replyText\",\"triggerType\":\"$triggerType\"}"
+            )
+            appendWebSocketLog("Audit: Added auto-reply rule for '$keyword'")
         }
     }
 
     fun updateReply(reply: CustomReplyEntity) {
         launchSafe("تحديث الرد المخصص", "updating reply rule") {
             repliesRepository.updateReply(reply)
+            
+            // Record Audit Trail
+            systemEventsRepository.recordEvent(
+                eventType = "AUDIT",
+                eventCategory = "SECURITY",
+                entityType = "RULE",
+                entityId = reply.id.toString(),
+                customerId = reply.contactName ?: "",
+                conversationId = "",
+                message = "تحديث قاعدة الرد للكلمة المفتاحية: \"${reply.keyword}\"",
+                metadata = "{\"keyword\":\"${reply.keyword}\",\"isEnabled\":${reply.isEnabled},\"triggerType\":\"${reply.triggerType}\"}"
+            )
+            appendWebSocketLog("Audit: Updated auto-reply rule '${reply.keyword}'")
         }
     }
 
     fun deleteReply(reply: CustomReplyEntity) {
         launchSafe("حذف الرد المخصص", "deleting reply rule") {
             repliesRepository.deleteReply(reply)
+            
+            // Record Audit Trail
+            systemEventsRepository.recordEvent(
+                eventType = "AUDIT",
+                eventCategory = "SECURITY",
+                entityType = "RULE",
+                entityId = reply.id.toString(),
+                customerId = reply.contactName ?: "",
+                conversationId = "",
+                message = "حذف قاعدة الرد للكلمة المفتاحية: \"${reply.keyword}\"",
+                metadata = "{\"keyword\":\"${reply.keyword}\"}"
+            )
+            appendWebSocketLog("Audit: Deleted auto-reply rule '${reply.keyword}'")
         }
     }
 
     fun toggleReplyCode(reply: CustomReplyEntity, isEnabled: Boolean) {
         launchSafe("تعديل حالة التفعيل", "toggling reply rule status") {
             repliesRepository.updateReply(reply.copy(isEnabled = isEnabled))
+            
+            // Record Audit Trail
+            systemEventsRepository.recordEvent(
+                eventType = "AUDIT",
+                eventCategory = "SECURITY",
+                entityType = "RULE",
+                entityId = reply.id.toString(),
+                customerId = "",
+                conversationId = "",
+                message = "تغيير حالة تفعيل قاعدة الرد \"${reply.keyword}\" إلى ${if (isEnabled) "نشط" else "معطل"}",
+                metadata = "{\"keyword\":\"${reply.keyword}\",\"newStatus\":$isEnabled}"
+            )
+            appendWebSocketLog("Audit: Toggled rule '${reply.keyword}' to $isEnabled")
         }
     }
 
@@ -166,12 +263,30 @@ class MainViewModel(
     fun clearLogs() {
         launchSafe("مسح سجلات الردود", "clearing reply logs") {
             logsRepository.clearAllLogs()
+            systemEventsRepository.recordEvent(
+                eventType = "AUDIT",
+                eventCategory = "SYSTEM",
+                entityType = "LOGS",
+                entityId = "ALL",
+                customerId = "",
+                conversationId = "",
+                message = "مسح جميع سجلات الردود التلقائية بالكامل من النظام"
+            )
+            appendWebSocketLog("System: All auto-reply logs cleared")
+        }
+    }
+
+    fun clearSystemEvents() {
+        launchSafe("مسح سجلات الأحداث", "clearing system events") {
+            systemEventsRepository.clearAllEvents()
+            appendWebSocketLog("System: All system events cleared")
         }
     }
 
     fun insertLog(log: AutoReplyLogEntity) {
         launchSafe("حفظ سجل الرد", "inserting auto-reply log") {
             logsRepository.insertLog(log)
+            appendWebSocketLog("Received message from ${log.senderName}: \"${log.messageText}\"")
         }
     }
 

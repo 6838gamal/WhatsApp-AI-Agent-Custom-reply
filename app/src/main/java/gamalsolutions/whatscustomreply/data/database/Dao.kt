@@ -38,3 +38,18 @@ interface AutoReplyLogDao {
     @Query("SELECT COUNT(*) FROM reply_logs WHERE isSuccess = 1")
     fun getSuccessCount(): Flow<Int>
 }
+
+@Dao
+interface SystemEventDao {
+    @Query("SELECT * FROM system_events ORDER BY createdAt DESC")
+    fun getAllEvents(): Flow<List<SystemEventEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertEvent(event: SystemEventEntity)
+
+    @Query("DELETE FROM system_events")
+    suspend fun clearAllEvents()
+
+    @Query("SELECT COUNT(*) FROM system_events")
+    fun getEventCount(): Flow<Int>
+}

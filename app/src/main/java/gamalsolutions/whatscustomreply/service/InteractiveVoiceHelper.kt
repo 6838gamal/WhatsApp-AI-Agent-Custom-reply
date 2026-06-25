@@ -43,6 +43,7 @@ class InteractiveVoiceHelper(private val context: Context) : KoinComponent, Text
     private var isListening = false
     private var audioManager: AudioManager? = null
     private var activeScope: CoroutineScope? = null
+    private var mediaPlayer: android.media.MediaPlayer? = null
     
     private val conversationHistory = mutableListOf<JSONObject>()
     private var systemPrompt = ""
@@ -122,13 +123,56 @@ class InteractiveVoiceHelper(private val context: Context) : KoinComponent, Text
     }
 
     private fun speakGreeting() {
-        // Speak initial greeting instructions or a standard greeting
-        val greeting = if (appLanguage == "en") {
-            "Hello, I am the automated smartphone assistant. Please tell me how I can help you."
+        val voiceFile = java.io.File(context.filesDir, "voice_greeting.3gp")
+        if (voiceFile.exists()) {
+            Log.d(TAG, "Custom recorded voice greeting exists! Playing audio greeting file...")
+            playAudioFile(voiceFile)
         } else {
-            "مرحباً بك، أنا المساعد الهاتفي الذكي لصاحب هذا الهاتف. كيف يمكنني خدمتك ومساعدتك اليوم؟ تفضل بالتحدث وتوجيه رسالتك."
+            val greeting = if (!systemPrompt.isNullOrBlank()) {
+                systemPrompt
+            } else if (appLanguage == "en") {
+                "Hello, I am the automated smartphone assistant. Please tell me how I can help you."
+            } else {
+                "مرحباً بك، أنا المساعد الهاتفي الذكي لصاحب هذا الهاتف. كيف يمكنني خدمتك ومساعدتك اليوم؟ تفضل بالتحدث وتوجيه رسالتك."
+            }
+            speakText(greeting)
         }
-        speakText(greeting)
+    }
+
+    private fun playAudioFile(file: java.io.File) {
+        val scope = activeScope ?: return
+        scope.launch(Dispatchers.Main) {
+            try {
+                mediaPlayer?.release()
+                mediaPlayer = android.media.MediaPlayer().apply {
+                    setDataSource(file.absolutePath)
+                    setAudioAttributes(
+                        android.media.AudioAttributes.Builder()
+                            .setUsage(android.media.AudioAttributes.USAGE_VOICE_COMMUNICATION)
+                            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH)
+                            .build()
+                    )
+                    prepare()
+                    start()
+                    setOnCompletionListener {
+                        Log.d(TAG, "Audio file greeting completed playing. Starting listening loop.")
+                        release()
+                        mediaPlayer = null
+                        startListeningLoop()
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error playing audio file greeting: ${e.message}. Falling back to TTS greeting.")
+                val greeting = if (!systemPrompt.isNullOrBlank()) {
+                    systemPrompt
+                } else if (appLanguage == "en") {
+                    "Hello, I am the automated smartphone assistant. Please tell me how I can help you."
+                } else {
+                    "مرحباً بك، أنا المساعد الهاتفي الذكي لصاحب هذا الهاتف. كيف يمكنني خدمتك ومساعدتك اليوم؟ تفضل بالتحدث وتوجيه رسالتك."
+                }
+                speakText(greeting)
+            }
+        }
     }
 
     private fun speakText(text: String) {
@@ -327,6 +371,14 @@ class InteractiveVoiceHelper(private val context: Context) : KoinComponent, Text
             tts = null
         } catch (e: Exception) {
             Log.e(TAG, "TTS shutdown error: ${e.message}")
+        }
+
+        try {
+            mediaPlayer?.stop()
+            mediaPlayer?.release()
+            mediaPlayer = null
+        } catch (e: Exception) {
+            Log.e(TAG, "MediaPlayer shutdown error: ${e.message}")
         }
 
         try {
