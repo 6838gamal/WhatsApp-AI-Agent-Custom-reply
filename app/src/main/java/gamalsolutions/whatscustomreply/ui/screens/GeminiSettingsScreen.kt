@@ -18,6 +18,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -36,6 +38,7 @@ fun GeminiSettingsScreen(
     val labels = if (settings.appLanguage == "en") EnStrings else ArStrings
 
     val scrollState = rememberScrollState()
+    var showApiKey by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -47,22 +50,22 @@ fun GeminiSettingsScreen(
         // Main Screen Header
         Column {
             Text(
-                text = labels.geminiEngineHeader,
+                text = if (settings.appLanguage == "en") "Gemini AI Config" else "إعدادات الذكاء الاصطناعي جيمناي",
                 fontSize = 22.sp,
                 fontWeight = FontWeight.ExtraBold
             )
             Text(
-                text = labels.geminiEngineDesc,
+                text = if (settings.appLanguage == "en") "Configure the Gemini parameters for automatic responses" else "قم بضبط محددات وإعدادات جيمناي للردود التلقائية الذكية",
                 fontSize = 13.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
-        // 1. API endpoint URL Config Card
+        // 1. API Key Card
         Card(
             shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
             )
         ) {
             Column(
@@ -74,29 +77,93 @@ fun GeminiSettingsScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.Language,
-                        contentDescription = "API url icon",
+                        imageVector = Icons.Filled.VpnKey,
+                        contentDescription = "API key icon",
                         tint = MaterialTheme.colorScheme.primary
                     )
-                    Text(labels.apiUrlLabel, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text(
+                        text = if (settings.appLanguage == "en") "Gemini API Key" else "مفتاح Gemini API",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
                 }
 
                 Text(
                     text = if (settings.appLanguage == "en") {
-                        "Enter the full routing path of your API (Webhook / REST Endpoint) which will accept incoming messages and calculate a response."
+                        "Paste your Gemini API Key. Your key is kept secure inside client-side DataStore."
                     } else {
-                        "أدخل الرابط الكامل لقناة الاتصال (واجهة API أو Webhook) التي ستستقبل الرسائل الواردة لتوليد الرد الآلي."
+                        "أدخل مفتاح Gemini API الخاص بك لتشغيل الذكاء الاصطناعي والاستجابة الفورية للرسائل."
                     },
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 TextField(
-                    value = settings.apiUrl,
-                    onValueChange = { viewModel.updateApiUrl(it) },
-                    placeholder = { Text("https://api.example.com/reply") },
-                    modifier = Modifier.fillMaxWidth().testTag("api_url_field"),
+                    value = settings.geminiApiKey,
+                    onValueChange = { viewModel.updateGeminiApiKey(it) },
+                    placeholder = { Text("AIzaSy...") },
+                    modifier = Modifier.fillMaxWidth().testTag("gemini_api_key_field"),
                     singleLine = true,
+                    shape = RoundedCornerShape(8.dp),
+                    visualTransformation = if (showApiKey) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { showApiKey = !showApiKey }) {
+                            Icon(
+                                imageVector = if (showApiKey) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                contentDescription = "Toggle API Key Visibility"
+                            )
+                        }
+                    },
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.surface,
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                    )
+                )
+            }
+        }
+
+        // 2. System Instructions Card
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Psychology,
+                        contentDescription = "System Instructions Icon",
+                        tint = MaterialTheme.colorScheme.secondary
+                    )
+                    Text(
+                        text = if (settings.appLanguage == "en") "AI System Instructions" else "توجيهات وموجه النظام لجيمناي",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
+                }
+
+                Text(
+                    text = if (settings.appLanguage == "en") {
+                        "Direct how the AI should behave (e.g. tone, response length, language restrictions)."
+                    } else {
+                        "وجه الذكاء الاصطناعي حول كيفية الرد وصياغة الكلام (مثال: الرد بشكل ودّي، بلهجة معينة، بالاختصار)."
+                    },
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                TextField(
+                    value = settings.geminiSystemInstruction,
+                    onValueChange = { viewModel.updateGeminiSystemInstruction(it) },
+                    modifier = Modifier.fillMaxWidth().testTag("gemini_instructions_field"),
+                    minLines = 4,
                     shape = RoundedCornerShape(8.dp),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = MaterialTheme.colorScheme.surface,
@@ -106,206 +173,104 @@ fun GeminiSettingsScreen(
             }
         }
 
-        // 2. Request Method Config Card
+        // 3. Target Reply Scope Card (خيارات الرد على الدردشة الفردية أو المجموعات أو كليهما)
         Card(
             shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
             )
         ) {
             Column(
                 modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.SwapHoriz,
-                        contentDescription = "HTTP method icon",
-                        tint = MaterialTheme.colorScheme.secondary
+                        imageVector = Icons.Filled.Group,
+                        contentDescription = "Target Scope Icon",
+                        tint = MaterialTheme.colorScheme.tertiary
                     )
-                    Text(labels.apiMethodLabel, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text(
+                        text = if (settings.appLanguage == "en") "Reply Target Scope" else "نطاق تفعيل الرد والدردشة",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
                 }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                Text(
+                    text = if (settings.appLanguage == "en") {
+                        "Determine who Gemini will reply to: only individual private chats, only group chats, or both."
+                    } else {
+                        "حدد المستهدفين بالرد الآلي الذكي: الدردشات الفردية الخاصة فقط، المجموعات والمجالس فقط، أو كلاهما."
+                    },
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                val scopes = listOf(
+                    Triple("INDIVIDUAL", if (settings.appLanguage == "en") "Individual Chats" else "الدردشات الفردية فقط", Icons.Default.Person),
+                    Triple("GROUPS", if (settings.appLanguage == "en") "Group Chats" else "المجموعات فقط", Icons.Default.Groups),
+                    Triple("BOTH", if (settings.appLanguage == "en") "Both Chats & Groups" else "كلاهما (الفردية والمجموعات)", Icons.Default.AllInclusive)
+                )
+
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    val methods = listOf("POST", "GET")
-                    methods.forEach { method ->
-                        val isSelected = settings.apiMethod == method
-                        Button(
-                            onClick = { viewModel.updateApiMethod(method) },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (isSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.surfaceVariant,
-                                contentColor = if (isSelected) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onSurfaceVariant
-                            ),
+                    scopes.forEach { (id, label, icon) ->
+                        val isSelected = settings.replyTargetScope == id
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { viewModel.updateReplyTargetScope(id) }
+                                .testTag("scope_option_$id"),
                             shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.weight(1f).testTag("method_${method.lowercase()}")
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
+                            ),
+                            border = if (isSelected) null else androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
                         ) {
-                            Text(method, fontWeight = FontWeight.Bold)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = null,
+                                        tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+                                    )
+                                    Text(
+                                        text = label,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 14.sp,
+                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                                RadioButton(
+                                    selected = isSelected,
+                                    onClick = { viewModel.updateReplyTargetScope(id) }
+                                )
+                            }
                         }
                     }
                 }
             }
         }
 
-        // 3. Custom Headers Card
+        // 4. Test Gemini connection Widget
         Card(
             shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
-            )
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.ListAlt,
-                        contentDescription = "Headers Icon",
-                        tint = MaterialTheme.colorScheme.tertiary
-                    )
-                    Text(labels.apiHeadersLabel, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                }
-
-                Text(
-                    text = if (settings.appLanguage == "en") {
-                        "Paste HTTP custom query headers below, with exactly one 'HeaderName: Value' pair on each individual line."
-                    } else {
-                        "أضف ترويسات الطلب المخصصة بالأسفل، مع تدوين زوج 'اسم الترويسة: القيمة' في كل سطر بشكل مستقل."
-                    },
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                TextField(
-                    value = settings.apiHeaders,
-                    onValueChange = { viewModel.updateApiHeaders(it) },
-                    placeholder = { Text("Content-Type: application/json\nAuthorization: Bearer my-api-token") },
-                    modifier = Modifier.fillMaxWidth().testTag("api_headers_field"),
-                    minLines = 3,
-                    shape = RoundedCornerShape(8.dp),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surface,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                    )
-                )
-            }
-        }
-
-        // 4. Request Body JSON Template (Supported for POST method only)
-        AnimatedVisibility(
-            visible = settings.apiMethod == "POST",
-            enter = fadeIn() + expandVertically(),
-            exit = fadeOut() + shrinkVertically()
-        ) {
-            Card(
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Code,
-                            contentDescription = "Body Template Icon",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Text(labels.apiBodyTemplateLabel, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                    }
-
-                    Text(
-                        text = if (settings.appLanguage == "en") {
-                            "Customize the payload JSON body template. Use placeholders {sender} and {message} to inject values automatically."
-                        } else {
-                            "خصّص بنية جسم طلب الإرسال JSON المتناقل. استخدم الرموز البديلة {sender} لجهة الاتصال و {message} لنص الرسالة المستلمة ليتم تعويضهما آلياً."
-                        },
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    TextField(
-                        value = settings.apiBodyTemplate,
-                        onValueChange = { viewModel.updateApiBodyTemplate(it) },
-                        modifier = Modifier.fillMaxWidth().testTag("api_body_template_field"),
-                        minLines = 4,
-                        shape = RoundedCornerShape(8.dp),
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = MaterialTheme.colorScheme.surface,
-                            unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                        )
-                    )
-                }
-            }
-        }
-
-        // 5. JSON response path parameter field
-        Card(
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
-            )
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Search,
-                        contentDescription = "Response path icon",
-                        tint = MaterialTheme.colorScheme.secondary
-                    )
-                    Text(labels.apiResponsePathLabel, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                }
-
-                Text(
-                    text = if (settings.appLanguage == "en") {
-                        "Specify the object key or dot-notation nested path mapping of response (e.g., 'reply' or 'data.text'). Leave empty to use the raw reply content directly."
-                    } else {
-                        "عيّن اسم الحقل البرمجي المستهدف في الاستجابة (مثل 'reply' أو 'text.reply'). اتركه فارغًا لاستخدام نص الاستجابة بالكامل كرسالة رد."
-                    },
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                TextField(
-                    value = settings.apiResponsePath,
-                    onValueChange = { viewModel.updateApiResponsePath(it) },
-                    placeholder = { Text("reply") },
-                    modifier = Modifier.fillMaxWidth().testTag("api_response_path_field"),
-                    singleLine = true,
-                    shape = RoundedCornerShape(8.dp),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surface,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                    )
-                )
-            }
-        }
-
-        // 6. Test custom API connection Widget
-        Card(
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
             )
         ) {
             Column(
@@ -322,7 +287,7 @@ fun GeminiSettingsScreen(
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = labels.testConnectionBtn,
+                        text = if (settings.appLanguage == "en") "Test Gemini Intelligence" else "فحص استجابة جيمناي للدردشة",
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp
                     )
@@ -330,9 +295,9 @@ fun GeminiSettingsScreen(
 
                 Text(
                     text = if (settings.appLanguage == "en") {
-                        "Execute a live connection test to verify that your custom API endpoint properly authenticates and resolves the message response."
+                        "Test your API Key connection. The system will send a secure ping to Gemini with your custom system instructions."
                     } else {
-                        "أجرِ فحص فوري ومحبّك للتأكد من ربط واجهة البيانات واستجابتها لتوليد نصوص الردود تلقائياً بكفاءة."
+                        "قم بإجراء محاكاة لربط مفتاح API. سيرسل النظام إشارة تحقق سريعة ومقيدة بالتعليمات للتأكد من دقة الردود وصحة المفتاح."
                     },
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -344,11 +309,11 @@ fun GeminiSettingsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Button(
-                        onClick = { viewModel.testApiConnection() },
+                        onClick = { viewModel.testGeminiConnection() },
                         enabled = !isTesting,
                         modifier = Modifier
                             .weight(1f)
-                            .testTag("test_custom_api_button")
+                            .testTag("test_gemini_button")
                     ) {
                         if (isTesting) {
                             CircularProgressIndicator(
@@ -357,16 +322,16 @@ fun GeminiSettingsScreen(
                                 strokeWidth = 2.dp
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(if (settings.appLanguage == "en") "Querying..." else "جاري الاستدعاء والفحص...")
+                            Text(if (settings.appLanguage == "en") "Querying..." else "جاري التحقق واستخراج الرد...")
                         } else {
-                            Text(labels.testConnectionBtn)
+                            Text(if (settings.appLanguage == "en") "Test Connectivity" else "بدء فحص الربط")
                         }
                     }
 
                     if (testResult != null) {
                         TextButton(
                             onClick = { viewModel.resetConnectionTestResult() },
-                            modifier = Modifier.testTag("clear_test_api_result")
+                            modifier = Modifier.testTag("clear_test_gemini_result")
                         ) {
                             Text(if (settings.appLanguage == "en") "Clear" else "مسح")
                         }
@@ -375,11 +340,6 @@ fun GeminiSettingsScreen(
 
                 testResult?.let { res ->
                     val isSuccess = res.startsWith("Success") || res.startsWith("success") || res.contains("نجاح") || res.contains("متصل")
-                    val labelText = if (isSuccess) {
-                        if (settings.appLanguage == "en") "Success: Connected with API!" else "تم بنجاح! الاتصال واستخراج الردود البرمجية يعمل بكفاءة."
-                    } else {
-                        res
-                    }
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -392,11 +352,11 @@ fun GeminiSettingsScreen(
                         contentAlignment = Alignment.CenterStart
                     ) {
                         Text(
-                            text = labelText,
+                            text = res,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (isSuccess) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error,
-                            modifier = Modifier.testTag("test_custom_api_result_label")
+                            modifier = Modifier.testTag("test_gemini_result_label")
                         )
                     }
                 }

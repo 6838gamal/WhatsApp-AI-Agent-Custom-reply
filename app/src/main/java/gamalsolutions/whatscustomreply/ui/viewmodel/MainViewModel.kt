@@ -26,6 +26,7 @@ class MainViewModel(
     private val repliesRepository: RepliesRepository,
     private val logsRepository: LogsRepository,
     val customApiRepository: CustomApiRepository,
+    val geminiRepository: gamalsolutions.whatscustomreply.data.api.GeminiRepository,
     private val settingsManager: SettingsManager,
     private val encryptedPrefs: EncryptedPrefsManager,
     val systemEventsRepository: SystemEventsRepository
@@ -118,7 +119,10 @@ class MainViewModel(
                 primaryAccountPhone = "",
                 additionalAccountPhones = "",
                 interactiveVoiceCallEnabled = false,
-                interactiveVoiceCallPrompt = "مرحباً، أنا المساعد الذكي لصاحب هذا الهاتف. إنه غير متاح حالياً للرد على المكالمات، وهو يثق بي للرد عليك والتجاوب معك بالكامل ومساعدتك وتسجيل طلبك. تفضل، كيف يمكنني خدمتك ومساعدتك اليوم؟"
+                interactiveVoiceCallPrompt = "مرحباً، أنا المساعد الذكي لصاحب هذا الهاتف. إنه غير متاح حالياً للرد على المكالمات، وهو يثق بي للرد عليك والتجاوب معك بالكامل ومساعدتك وتسجيل طلبك. تفضل، كيف يمكنني خدمتك ومساعدتك اليوم؟",
+                geminiApiKey = "",
+                geminiSystemInstruction = "أنت مساعد ذكي ولطيف لصاحب هذا الهاتف. قم بالرد بأسلوب لبق ومختصر للغاية ودون إطالة.",
+                replyTargetScope = "BOTH"
             )
         )
 
@@ -387,20 +391,16 @@ class MainViewModel(
         launchSafe("تحديث النطق والرد الصوتي التلقائي", "updating voice synthesis / text-to-speech announcement switch") { settingsManager.updateVoiceReplyEnabled(value) }
     }
 
-    // --- Custom API Connection Testing ---
-    fun testApiConnection() {
+    // --- Gemini API Connection Testing ---
+    fun testGeminiConnection() {
         viewModelScope.launch {
             try {
                 _isTestingConnection.value = true
-                _testConnectionResult.value = if (settings.value.appLanguage == "en") "Connecting to Custom API..." else "جاري الاتصال والتحقق من واجهة البيانات..."
-                val result = customApiRepository.generateReply(
-                    apiUrl = settings.value.apiUrl,
-                    apiMethod = settings.value.apiMethod,
-                    apiHeaders = settings.value.apiHeaders,
-                    apiBodyTemplate = settings.value.apiBodyTemplate,
-                    apiResponsePath = settings.value.apiResponsePath,
-                    sender = "Fahd (Test)",
-                    message = "Testing connection."
+                _testConnectionResult.value = if (settings.value.appLanguage == "en") "Connecting to Gemini API..." else "جاري الاتصال والتحقق من ذكاء جيمناي..."
+                val result = geminiRepository.generateReply(
+                    apiKey = settings.value.geminiApiKey,
+                    systemInstruction = settings.value.geminiSystemInstruction,
+                    message = "مرحبا، هل أنت جاهز للرد التلقائي؟ رد بكلمة واحدة فقط: نعم"
                 )
                 _isTestingConnection.value = false
                 result.onSuccess { text ->
@@ -410,11 +410,29 @@ class MainViewModel(
                 }
             } catch (ex: Exception) {
                 _isTestingConnection.value = false
-                _testConnectionResult.value = "Connection Test Crash: ${ex.message}"
-                launchSafe("فحص اتصال واجهة البيانات", "custom Web API connection test connection crash") {
+                _testConnectionResult.value = "Gemini Connection Test Crash: ${ex.message}"
+                launchSafe("فحص اتصال جيمناي API", "Gemini API connection test connection crash") {
                     throw ex
                 }
             }
+        }
+    }
+
+    fun updateGeminiApiKey(value: String) {
+        launchSafe("تحديث مفتاح Gemini API", "updating Gemini API Key") {
+            settingsManager.updateGeminiApiKey(value)
+        }
+    }
+
+    fun updateGeminiSystemInstruction(value: String) {
+        launchSafe("تحديث تعليمات Gemini", "updating Gemini System Instructions") {
+            settingsManager.updateGeminiSystemInstruction(value)
+        }
+    }
+
+    fun updateReplyTargetScope(value: String) {
+        launchSafe("تحديث نطاق الرد للدردشة", "updating reply target scope") {
+            settingsManager.updateReplyTargetScope(value)
         }
     }
 

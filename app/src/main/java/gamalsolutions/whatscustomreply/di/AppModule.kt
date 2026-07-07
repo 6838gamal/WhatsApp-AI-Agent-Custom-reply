@@ -50,6 +50,9 @@ val appModule = module {
     // Repository for Custom API Client
     single { CustomApiRepository(get()) }
 
+    // Repository for Gemini API Client
+    single { gamalsolutions.whatscustomreply.data.api.GeminiRepository(get()) }
+
     // Speech synthesis helper
     single { gamalsolutions.whatscustomreply.service.SpeechHelper(androidContext()) }
 
@@ -57,5 +60,5 @@ val appModule = module {
     single { gamalsolutions.whatscustomreply.service.InteractiveVoiceHelper(androidContext()) }
 
     // ViewModel
-    viewModel { MainViewModel(get(), get(), get(), get(), get(), get()) }
+    viewModel { MainViewModel(get(), get(), get(), get(), get(), get(), get()) }
 }

@@ -37,7 +37,10 @@ data class AppSettings(
     val primaryAccountPhone: String,
     val additionalAccountPhones: String,
     val interactiveVoiceCallEnabled: Boolean,
-    val interactiveVoiceCallPrompt: String
+    val interactiveVoiceCallPrompt: String,
+    val geminiApiKey: String,
+    val geminiSystemInstruction: String,
+    val replyTargetScope: String
 )
 
 class SettingsManager(private val context: Context) {
@@ -71,6 +74,9 @@ class SettingsManager(private val context: Context) {
         val KEY_ADDITIONAL_ACCOUNT_PHONES = stringPreferencesKey("additional_account_phones")
         val KEY_INTERACTIVE_VOICE_CALL_ENABLED = booleanPreferencesKey("interactive_voice_call_enabled")
         val KEY_INTERACTIVE_VOICE_CALL_PROMPT = stringPreferencesKey("interactive_voice_call_prompt")
+        val KEY_GEMINI_API_KEY = stringPreferencesKey("gemini_api_key")
+        val KEY_GEMINI_SYSTEM_INSTRUCTION = stringPreferencesKey("gemini_system_instruction")
+        val KEY_REPLY_TARGET_SCOPE = stringPreferencesKey("reply_target_scope")
     }
 
     val settingsFlow: Flow<AppSettings> = context.dataStore.data.map { preferences ->
@@ -102,7 +108,10 @@ class SettingsManager(private val context: Context) {
             primaryAccountPhone = preferences[KEY_PRIMARY_ACCOUNT_PHONE] ?: "",
             additionalAccountPhones = preferences[KEY_ADDITIONAL_ACCOUNT_PHONES] ?: "",
             interactiveVoiceCallEnabled = preferences[KEY_INTERACTIVE_VOICE_CALL_ENABLED] ?: false,
-            interactiveVoiceCallPrompt = preferences[KEY_INTERACTIVE_VOICE_CALL_PROMPT] ?: "مرحباً، أنا المساعد الذكي لصاحب هذا الهاتف. إنه غير متاح حالياً للرد على المكالمات، وهو يثق بي للرد عليك والتجاوب معك بالكامل ومساعدتك وتسجيل طلبك. تفضل، كيف يمكنني خدمتك ومساعدتك اليوم؟"
+            interactiveVoiceCallPrompt = preferences[KEY_INTERACTIVE_VOICE_CALL_PROMPT] ?: "مرحباً، أنا المساعد الذكي لصاحب هذا الهاتف. إنه غير متاح حالياً للرد على المكالمات، وهو يثق بي للرد عليك والتجاوب معك بالكامل ومساعدتك وتسجيل طلبك. تفضل، كيف يمكنني خدمتك ومساعدتك اليوم؟",
+            geminiApiKey = preferences[KEY_GEMINI_API_KEY] ?: "",
+            geminiSystemInstruction = preferences[KEY_GEMINI_SYSTEM_INSTRUCTION] ?: "أنت مساعد ذكي ولطيف لصاحب هذا الهاتف. قم بالرد بأسلوب لبق ومختصر للغاية ودون إطالة.",
+            replyTargetScope = preferences[KEY_REPLY_TARGET_SCOPE] ?: "BOTH"
         )
     }
 
@@ -134,6 +143,9 @@ class SettingsManager(private val context: Context) {
     suspend fun updateAdditionalAccountPhones(value: String) = set(KEY_ADDITIONAL_ACCOUNT_PHONES, value)
     suspend fun updateInteractiveVoiceCallEnabled(value: Boolean) = set(KEY_INTERACTIVE_VOICE_CALL_ENABLED, value)
     suspend fun updateInteractiveVoiceCallPrompt(value: String) = set(KEY_INTERACTIVE_VOICE_CALL_PROMPT, value)
+    suspend fun updateGeminiApiKey(value: String) = set(KEY_GEMINI_API_KEY, value)
+    suspend fun updateGeminiSystemInstruction(value: String) = set(KEY_GEMINI_SYSTEM_INSTRUCTION, value)
+    suspend fun updateReplyTargetScope(value: String) = set(KEY_REPLY_TARGET_SCOPE, value)
 
     private suspend fun <T> set(key: Preferences.Key<T>, value: T) {
         context.dataStore.edit { preferences ->

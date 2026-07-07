@@ -32,6 +32,7 @@ class WhatsAppNotificationListenerService : NotificationListenerService(), KoinC
     private val repliesRepository: RepliesRepository by inject()
     private val logsRepository: LogsRepository by inject()
     private val customApiRepository: CustomApiRepository by inject()
+    private val geminiRepository: gamalsolutions.whatscustomreply.data.api.GeminiRepository by inject()
     private val settingsManager: gamalsolutions.whatscustomreply.data.datastore.SettingsManager by inject()
     private val speechHelper: SpeechHelper by inject()
 
@@ -263,10 +264,17 @@ class WhatsAppNotificationListenerService : NotificationListenerService(), KoinC
                 return@launch
             }
 
-            // 1. Group Filtering
+            // 1. Target Scope Filtering (Individual, Groups, or Both)
             val isGroup = extras.getBoolean(Notification.EXTRA_IS_GROUP_CONVERSATION, false)
-            if (isGroup && settings.ignoreGroups) {
-                Log.d(TAG, "Skipping group message from: $title")
+            val scope = settings.replyTargetScope
+            val shouldSkip = when (scope) {
+                "INDIVIDUAL" -> isGroup
+                "GROUPS" -> !isGroup
+                "BOTH" -> false
+                else -> false
+            }
+            if (shouldSkip) {
+                Log.d(TAG, "Skipping notification (isGroup=$isGroup) because replyTargetScope is $scope")
                 return@launch
             }
 
@@ -306,60 +314,19 @@ class WhatsAppNotificationListenerService : NotificationListenerService(), KoinC
         message: String,
         settings: AppSettings
     ) {
-        val mode = settings.replyMode // "CUSTOM", "API", "HYBRID"
         var replyText: String? = null
-        var logMode = "CUSTOM"
-        var matchedReplyType = "TEXT"
+        val logMode = "GEMINI_AI"
 
-        // Search Custom Keywords
-        val matchedCustom = findCustomReplyMatch(sbn, message, sender, settings)
+        val geminiResult = geminiRepository.generateReply(
+            apiKey = settings.geminiApiKey,
+            systemInstruction = settings.geminiSystemInstruction,
+            message = message
+        )
 
-        if (mode == "CUSTOM") {
-            if (matchedCustom != null) {
-                replyText = matchedCustom.replyText
-                matchedReplyType = matchedCustom.replyType
-            }
-            logMode = "CUSTOM"
-        } else if (mode == "API") {
-            logMode = "CUSTOM_API"
-            val apiResult = customApiRepository.generateReply(
-                apiUrl = settings.apiUrl,
-                apiMethod = settings.apiMethod,
-                apiHeaders = settings.apiHeaders,
-                apiBodyTemplate = settings.apiBodyTemplate,
-                apiResponsePath = settings.apiResponsePath,
-                sender = sender,
-                message = message
-            )
-            apiResult.onSuccess { text -> replyText = text }
-            apiResult.onFailure { e -> Log.e(TAG, "Custom API reply generation failed: ${e.message}") }
-        } else if (mode == "HYBRID") {
-            if (matchedCustom != null) {
-                replyText = matchedCustom.replyText
-                matchedReplyType = matchedCustom.replyType
-                logMode = "CUSTOM (HYBRID)"
-            } else {
-                logMode = "CUSTOM_API (HYBRID)"
-                val apiResult = customApiRepository.generateReply(
-                    apiUrl = settings.apiUrl,
-                    apiMethod = settings.apiMethod,
-                    apiHeaders = settings.apiHeaders,
-                    apiBodyTemplate = settings.apiBodyTemplate,
-                    apiResponsePath = settings.apiResponsePath,
-                    sender = sender,
-                    message = message
-                )
-                apiResult.onSuccess { text -> replyText = text }
-                apiResult.onFailure { e -> Log.e(TAG, "Custom API hybrid reply failed: ${e.message}") }
-            }
-        }
-
-        if (replyText != null && matchedReplyType == "VOICE") {
-            replyText = if (settings.appLanguage == "en") {
-                "🎙️ [Voice Reply]: $replyText"
-            } else {
-                "🎙️ [رد صوتي]: $replyText"
-            }
+        geminiResult.onSuccess { text ->
+            replyText = text
+        }.onFailure { e ->
+            Log.e(TAG, "Gemini auto-reply failed: ${e.message}", e)
         }
 
         // Random delay simulation if active
@@ -382,7 +349,7 @@ class WhatsAppNotificationListenerService : NotificationListenerService(), KoinC
             AutoReplyLogEntity(
                 senderName = sender,
                 messageText = message,
-                replyText = replyText ?: "No matching reply (Mode: $mode)",
+                replyText = replyText ?: "Failed to generate AI reply",
                 mode = logMode,
                 isSuccess = isSuccess
             )
@@ -390,8 +357,8 @@ class WhatsAppNotificationListenerService : NotificationListenerService(), KoinC
 
         if (isSuccess && replyText != null) {
             repliedUsers.add(sender)
-            Log.d(TAG, "Automated reply sent successfully using RemoteInput!")
-            if (settings.voiceReplyEnabled || matchedReplyType == "VOICE") {
+            Log.d(TAG, "Automated Gemini reply sent successfully using RemoteInput!")
+            if (settings.voiceReplyEnabled) {
                 val announceText = if (settings.appLanguage == "en") {
                     "Automated reply sent to $sender: $replyText"
                 } else {

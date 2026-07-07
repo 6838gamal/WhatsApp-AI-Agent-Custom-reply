@@ -75,11 +75,8 @@ class MainActivity : ComponentActivity() {
 
 sealed class NavigationItem(val route: String, val title: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
     object Dashboard : NavigationItem("dashboard", "Home", Icons.Filled.Dashboard)
-    object Replies : NavigationItem("replies", "Rules", Icons.Filled.Chat)
-    object Gemini : NavigationItem("gemini", "Custom API", Icons.Filled.Code)
+    object Gemini : NavigationItem("gemini", "Gemini", Icons.Filled.Code)
     object Logs : NavigationItem("logs", "Logs", Icons.Filled.History)
-    object Statistics : NavigationItem("statistics", "Stats", Icons.Filled.BarChart)
-    object Settings : NavigationItem("settings", "Settings", Icons.Filled.Settings)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -107,11 +104,8 @@ fun MainAppScreen() {
 
     val navItems = listOf(
         NavigationItem.Dashboard,
-        NavigationItem.Replies,
         NavigationItem.Gemini,
-        NavigationItem.Logs,
-        NavigationItem.Statistics,
-        NavigationItem.Settings
+        NavigationItem.Logs
     )
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -131,11 +125,8 @@ fun MainAppScreen() {
                         Text(
                             text = when (currentRoute) {
                                 "dashboard" -> labels.appName
-                                "replies" -> labels.customRepliesHeader
-                                "gemini" -> labels.geminiEngineHeader
+                                "gemini" -> if (settings.appLanguage == "en") "Gemini Config" else "إعدادات جيمناي"
                                 "logs" -> labels.logHeader
-                                "statistics" -> labels.stats
-                                "settings" -> labels.settings
                                 else -> labels.appName
                             },
                             fontWeight = FontWeight.ExtraBold
@@ -154,11 +145,8 @@ fun MainAppScreen() {
                     navItems.forEach { item ->
                         val title = when (item) {
                             NavigationItem.Dashboard -> labels.home
-                            NavigationItem.Replies -> labels.rules
-                            NavigationItem.Gemini -> labels.gemini
+                            NavigationItem.Gemini -> if (settings.appLanguage == "en") "Gemini" else "جيمناي"
                             NavigationItem.Logs -> labels.logs
-                            NavigationItem.Statistics -> labels.stats
-                            NavigationItem.Settings -> labels.settings
                         }
                         NavigationBarItem(
                             icon = { Icon(item.icon, contentDescription = title) },
@@ -187,13 +175,10 @@ fun MainAppScreen() {
                 composable(NavigationItem.Dashboard.route) {
                     DashboardScreen(
                         viewModel = viewModel,
-                        onNavigateToReplies = { navController.navigate(NavigationItem.Replies.route) },
+                        onNavigateToReplies = {},
                         onNavigateToGemini = { navController.navigate(NavigationItem.Gemini.route) },
-                        onNavigateToSettings = { navController.navigate(NavigationItem.Settings.route) }
+                        onNavigateToSettings = { navController.navigate(NavigationItem.Logs.route) }
                     )
-                }
-                composable(NavigationItem.Replies.route) {
-                    RepliesScreen(viewModel = viewModel)
                 }
                 composable(NavigationItem.Gemini.route) {
                     GeminiSettingsScreen(viewModel = viewModel)
@@ -201,22 +186,8 @@ fun MainAppScreen() {
                 composable(NavigationItem.Logs.route) {
                     LogsScreen(
                         viewModel = viewModel,
-                        onNavigateToReplies = {
-                            navController.navigate(NavigationItem.Replies.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        }
+                        onNavigateToReplies = {}
                     )
-                }
-                composable(NavigationItem.Statistics.route) {
-                    StatisticsScreen(viewModel = viewModel)
-                }
-                composable(NavigationItem.Settings.route) {
-                    SettingsScreen(viewModel = viewModel)
                 }
             }
         }
