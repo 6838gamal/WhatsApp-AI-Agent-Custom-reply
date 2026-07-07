@@ -1,6 +1,8 @@
 package gamalsolutions.whatscustomreply.data.api
 
 import android.util.Log
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.*
 import okhttp3.*
@@ -34,9 +36,9 @@ class GeminiRepository(
         apiKey: String,
         systemInstruction: String,
         message: String
-    ): Result<String> {
+    ): Result<String> = withContext(Dispatchers.IO) {
         if (apiKey.isBlank()) {
-            return Result.failure(Exception("Gemini API Key is empty. Please configure it in Gemini Settings."))
+            return@withContext Result.failure(Exception("Gemini API Key is empty. Please configure it in Gemini Settings."))
         }
 
         val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$apiKey"
@@ -50,7 +52,12 @@ class GeminiRepository(
             } else null
         )
 
-        val jsonString = json.encodeToString(GeminiRequest.serializer(), requestBody)
+        val jsonString = try {
+            json.encodeToString(GeminiRequest.serializer(), requestBody)
+        } catch (e: Exception) {
+            return@withContext Result.failure(Exception("Request Serialization Error: ${e.message ?: e.toString()}"))
+        }
+        
         val body = jsonString.toRequestBody("application/json; charset=utf-8".toMediaType())
 
         val request = Request.Builder()
@@ -58,13 +65,21 @@ class GeminiRepository(
             .post(body)
             .build()
 
-        return try {
+        try {
             httpClient.newCall(request).execute().use { response ->
                 val code = response.code
                 val responseString = response.body?.string() ?: ""
 
                 if (!response.isSuccessful) {
-                    return Result.failure(Exception("HTTP Error $code: $responseString".take(250)))
+                    val apiErrorMessage = try {
+                        val errorJson = json.parseToJsonElement(responseString).jsonObject
+                        val errorObj = errorJson["error"]?.jsonObject
+                        errorObj?.get("message")?.jsonPrimitive?.content
+                    } catch (e: Exception) {
+                        null
+                    }
+                    val finalErrorMessage = apiErrorMessage ?: "HTTP Error $code: $responseString"
+                    return@withContext Result.failure(Exception(finalErrorMessage))
                 }
 
                 // Parse response
@@ -79,15 +94,15 @@ class GeminiRepository(
                 if (text != null) {
                     Result.success(text.trim())
                 } else {
-                    Result.failure(Exception("Extract failed: Could not find reply text in Gemini response."))
+                    Result.failure(Exception("Extract failed: Could not find reply text in Gemini response. Full response: $responseString"))
                 }
             }
         } catch (e: IOException) {
             Log.e(TAG, "Network exception calling Gemini API", e)
-            Result.failure(Exception("Connection failed! Verify your internet connection. Error: ${e.message}"))
+            Result.failure(Exception("Connection failed! Verify your internet connection. Error: ${e.message ?: e.toString()}"))
         } catch (e: Exception) {
             Log.e(TAG, "General exception calling Gemini API", e)
-            Result.failure(Exception("Gemini API Error: ${e.message}"))
+            Result.failure(Exception("Gemini API Error: ${e.message ?: e.toString()}"))
         }
     }
 }

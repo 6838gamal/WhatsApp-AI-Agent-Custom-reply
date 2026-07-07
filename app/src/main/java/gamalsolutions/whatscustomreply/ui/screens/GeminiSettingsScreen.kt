@@ -26,6 +26,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import gamalsolutions.whatscustomreply.ui.ArStrings
 import gamalsolutions.whatscustomreply.ui.EnStrings
 import gamalsolutions.whatscustomreply.ui.viewmodel.MainViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -362,5 +363,289 @@ fun GeminiSettingsScreen(
                 }
             }
         }
+
+        // 5. Chat Sandbox Card
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+            ),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            val coroutineScope = rememberCoroutineScope()
+            val sandboxMessages = remember { mutableStateListOf<SandboxMessage>() }
+            val chatListScrollState = rememberScrollState()
+            var inputText by remember { mutableStateOf("") }
+            var isSendingMessage by remember { mutableStateOf(false) }
+
+            LaunchedEffect(settings.appLanguage) {
+                if (sandboxMessages.isEmpty()) {
+                    sandboxMessages.add(
+                        SandboxMessage(
+                            sender = "AI",
+                            text = if (settings.appLanguage == "en") {
+                                "Hello! I am Gemini. Send me any message here to test my responses and system instructions configuration in real-time."
+                            } else {
+                                "مرحباً! أنا المساعد الذكي جيمناي. يمكنك كتابة أي رسالة وتجربتي هنا مباشرة لفحص دقة صياغة الردود ومناسبتها للتوجيهات."
+                            }
+                        )
+                    )
+                }
+            }
+
+            LaunchedEffect(sandboxMessages.size) {
+                if (sandboxMessages.isNotEmpty()) {
+                    chatListScrollState.animateScrollTo(chatListScrollState.maxValue)
+                }
+            }
+
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Forum,
+                            contentDescription = "Chat Sandbox Icon",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = if (settings.appLanguage == "en") "Gemini Chat Sandbox" else "محاكي الدردشة التجريبي لجيمناي",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp
+                        )
+                    }
+                    if (sandboxMessages.size > 1) {
+                        IconButton(
+                            onClick = {
+                                sandboxMessages.clear()
+                                sandboxMessages.add(
+                                    SandboxMessage(
+                                        sender = "AI",
+                                        text = if (settings.appLanguage == "en") {
+                                            "Hello! I am Gemini. Send me any message here to test my responses and system instructions configuration in real-time."
+                                        } else {
+                                            "مرحباً! أنا المساعد الذكي جيمناي. يمكنك كتابة أي رسالة وتجربتي هنا مباشرة لفحص دقة صياغة الردود ومناسبتها للتوجيهات."
+                                        }
+                                    )
+                                )
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.DeleteOutline,
+                                contentDescription = "Clear Chat History",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+
+                Text(
+                    text = if (settings.appLanguage == "en") {
+                        "Simulate a private chat conversation with Gemini to see exactly how it processes your input and rules."
+                    } else {
+                        "قم بإجراء محادثة تجريبية مباشرة مع جيمناي لمشاهدة واختبار التجاوب الفعلي ومطابقة القواعد."
+                    },
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                // Chat Messages Window
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(280.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f))
+                        .padding(8.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(chatListScrollState),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        sandboxMessages.forEach { msg ->
+                            val isUser = msg.sender == "USER"
+                            val isError = msg.isError
+
+                            val alignment = if (isUser) Alignment.End else Alignment.Start
+                            val bubbleColor = when {
+                                isUser -> MaterialTheme.colorScheme.primary
+                                isError -> MaterialTheme.colorScheme.errorContainer
+                                else -> MaterialTheme.colorScheme.secondaryContainer
+                            }
+                            val textColor = when {
+                                isUser -> MaterialTheme.colorScheme.onPrimary
+                                isError -> MaterialTheme.colorScheme.onErrorContainer
+                                else -> MaterialTheme.colorScheme.onSecondaryContainer
+                            }
+
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalAlignment = alignment
+                            ) {
+                                Card(
+                                    colors = CardDefaults.cardColors(containerColor = bubbleColor),
+                                    shape = if (isUser) {
+                                        RoundedCornerShape(16.dp, 16.dp, 0.dp, 16.dp)
+                                    } else {
+                                        RoundedCornerShape(16.dp, 16.dp, 16.dp, 0.dp)
+                                    },
+                                    modifier = Modifier.widthIn(max = 240.dp)
+                                ) {
+                                    Column(modifier = Modifier.padding(12.dp)) {
+                                        if (isError) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                                modifier = Modifier.padding(bottom = 4.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Filled.Error,
+                                                    contentDescription = "Error Icon",
+                                                    tint = MaterialTheme.colorScheme.error,
+                                                    modifier = Modifier.size(14.dp)
+                                                )
+                                                Text(
+                                                    text = if (settings.appLanguage == "en") "Configuration Error" else "خطأ في الاتصال والتهيئة",
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = MaterialTheme.colorScheme.error
+                                                )
+                                            }
+                                        }
+                                        Text(
+                                            text = msg.text,
+                                            fontSize = 13.sp,
+                                            color = textColor
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = if (isUser) (if (settings.appLanguage == "en") "You" else "أنت")
+                                           else if (isError) (if (settings.appLanguage == "en") "System" else "النظام")
+                                           else (if (settings.appLanguage == "en") "Gemini" else "جيمناي"),
+                                    fontSize = 10.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+
+                        if (isSendingMessage) {
+                            // Typing indicator
+                            Row(
+                                modifier = Modifier
+                                    .wrapContentSize()
+                                    .padding(4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(12.dp),
+                                    strokeWidth = 1.5.dp,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = if (settings.appLanguage == "en") "Gemini is replying..." else "جيمناي يكتب الرد الآن...",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Chat Input Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    TextField(
+                        value = inputText,
+                        onValueChange = { inputText = it },
+                        placeholder = {
+                            Text(
+                                text = if (settings.appLanguage == "en") {
+                                    if (settings.geminiApiKey.isBlank()) "Please configure API Key first" else "Type message to test..."
+                                } else {
+                                    if (settings.geminiApiKey.isBlank()) "يرجى تهيئة مفتاح API أولاً" else "اكتب رسالة تجريبية هنا..."
+                                },
+                                fontSize = 13.sp
+                            )
+                        },
+                        modifier = Modifier
+                            .weight(1f)
+                            .testTag("sandbox_chat_input"),
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surface,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        enabled = !isSendingMessage && settings.geminiApiKey.isNotBlank()
+                    )
+
+                    IconButton(
+                        onClick = {
+                            val msg = inputText.trim()
+                            if (msg.isNotEmpty()) {
+                                inputText = ""
+                                sandboxMessages.add(SandboxMessage(sender = "USER", text = msg))
+                                isSendingMessage = true
+                                coroutineScope.launch {
+                                    val result = viewModel.geminiRepository.generateReply(
+                                        apiKey = settings.geminiApiKey,
+                                        systemInstruction = settings.geminiSystemInstruction,
+                                        message = msg
+                                    )
+                                    isSendingMessage = false
+                                    result.onSuccess { reply ->
+                                        sandboxMessages.add(SandboxMessage(sender = "AI", text = reply))
+                                    }.onFailure { error ->
+                                        sandboxMessages.add(
+                                            SandboxMessage(
+                                                sender = "ERROR",
+                                                text = error.message ?: "Unknown error occurred.",
+                                                isError = true
+                                            )
+                                        )
+                                    }
+                                }
+                            }
+                        },
+                        enabled = !isSendingMessage && inputText.isNotBlank() && settings.geminiApiKey.isNotBlank(),
+                        colors = IconButtonDefaults.iconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary,
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            disabledContentColor = MaterialTheme.colorScheme.outline
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Send,
+                            contentDescription = "Send Test Message",
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
+        }
     }
 }
+
+data class SandboxMessage(
+    val sender: String,
+    val text: String,
+    val isError: Boolean = false
+)
