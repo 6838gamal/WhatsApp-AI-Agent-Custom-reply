@@ -265,7 +265,9 @@ class WhatsAppNotificationListenerService : NotificationListenerService(), KoinC
             }
 
             // 1. Target Scope Filtering (Individual, Groups, or Both)
-            val isGroup = extras.getBoolean(Notification.EXTRA_IS_GROUP_CONVERSATION, false)
+            val isGroup = extras.getBoolean(Notification.EXTRA_IS_GROUP_CONVERSATION, false) ||
+                          extras.getBoolean("android.isGroupConversation", false) ||
+                          (extras.getCharSequence("android.conversationTitle") != null)
             val scope = settings.replyTargetScope
             val shouldSkip = when (scope) {
                 "INDIVIDUAL" -> isGroup
@@ -315,6 +317,7 @@ class WhatsAppNotificationListenerService : NotificationListenerService(), KoinC
         settings: AppSettings
     ) {
         var replyText: String? = null
+        var errorMessage: String? = null
         val logMode = "GEMINI_AI"
 
         val geminiResult = geminiRepository.generateReply(
@@ -327,6 +330,7 @@ class WhatsAppNotificationListenerService : NotificationListenerService(), KoinC
             replyText = text
         }.onFailure { e ->
             Log.e(TAG, "Gemini auto-reply failed: ${e.message}", e)
+            errorMessage = e.message ?: e.toString()
         }
 
         // Random delay simulation if active
@@ -349,7 +353,7 @@ class WhatsAppNotificationListenerService : NotificationListenerService(), KoinC
             AutoReplyLogEntity(
                 senderName = sender,
                 messageText = message,
-                replyText = replyText ?: "Failed to generate AI reply",
+                replyText = replyText ?: "Failed: ${errorMessage ?: "Unknown error"}",
                 mode = logMode,
                 isSuccess = isSuccess
             )
